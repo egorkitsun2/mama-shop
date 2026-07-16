@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Молоко затылочное 3.2%",
+    "price": 450,
+    "img": "https://placehold.co/300x200?text=Moloko"
+  },
+  {
+    "id": 2,
+    "name": "Хлеб из будущего",
+    "price": 180,
+    "img": "https://placehold.co/300x200?text=Hleb"
+  },
+  {
+    "id": 3,
+    "name": "Колбаса докторская (без докторов)",
+    "price": 1200,
+    "img": "https://placehold.co/300x200?text=Kolbasa"
+  }
+]
