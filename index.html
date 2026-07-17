@@ -56,7 +56,7 @@
 
       async function loadProducts() {
         try {
-          const response = await fetch("products.json");
+          const response = await fetch("mama-shop/products.json");
           if (!response.ok) throw new Error("Не удалось прочитать JSON");
           productsData = await response.json();
 
