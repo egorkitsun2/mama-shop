@@ -3,23 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Сканер</title>
+    <title>Сканер (Телефон)</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-gray-100 p-4">
     <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4">
-      <h2 class="text-xl font-bold mb-4 text-center text-gray-800">Касса</h2>
+      <h2 class="text-xl font-bold mb-4 text-center text-gray-800">
+        Касса (Скан)
+      </h2>
       <div id="reader" class="w-full mb-4 overflow-hidden rounded"></div>
-      <div id="result" class="text-center font-bold text-lg text-blue-600">
+      <div id="result" class="text-center font-bold text-lg text-blue-600 mb-4">
         Наведи камеру на штрихкод
       </div>
       <button
         id="rescan"
-        class="mt-4 w-full bg-blue-500 text-white py-2 rounded hidden"
+        class="w-full bg-blue-500 text-white py-2 rounded hidden mb-4"
         onclick="startScanner()"
       >
         Сканировать еще
+      </button>
+      <button
+        id="clearCart"
+        class="w-full bg-red-500 text-white py-3 rounded font-bold"
+        onclick="clearCart()"
+      >
+        🗑 Новый покупатель (Очистить чек)
       </button>
     </div>
 
@@ -38,7 +47,7 @@
       }
 
       function onScanSuccess(decodedText) {
-        html5QrcodeScanner.clear(); // Вырубаем камеру
+        html5QrcodeScanner.clear();
 
         fetch("/scan", {
           method: "POST",
@@ -49,7 +58,7 @@
           .then((data) => {
             if (data.status === "found") {
               document.getElementById("result").innerHTML =
-                `<span class="text-green-600">Найдено: ${data.name} — ${data.price} ₸</span>`;
+                `<span class="text-green-600">В чеке: ${data.name}</span>`;
               document.getElementById("rescan").classList.remove("hidden");
             } else {
               let name = prompt("Новый товар! Введи название:");
@@ -73,12 +82,25 @@
                 }),
               }).then(() => {
                 document.getElementById("result").innerHTML =
-                  `<span class="text-green-600">Добавлено: ${name} — ${price} ₸</span>`;
+                  `<span class="text-green-600">Добавлено в БД и чек: ${name}</span>`;
                 document.getElementById("rescan").classList.remove("hidden");
               });
             }
           });
       }
+
+      function clearCart() {
+        fetch("/api/cart/clear", { method: "POST" }).then(() => {
+          document.getElementById("result").innerHTML =
+            `<span class="text-red-500">Чек сброшен</span>`;
+          if (document.getElementById("rescan").classList.contains("hidden")) {
+            // Если камера уже работает, ничего не делаем
+          } else {
+            startScanner();
+          }
+        });
+      }
+
       startScanner();
     </script>
   </body>
