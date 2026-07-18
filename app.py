@@ -12,7 +12,6 @@ current_cart = []
 
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
-        # Добавили колонку image
         conn.execute('CREATE TABLE IF NOT EXISTS products (barcode TEXT PRIMARY KEY, name TEXT, price REAL, image TEXT)')
 
 def export_json():
@@ -40,11 +39,11 @@ def scan():
         prod = cur.fetchone()
     
     if prod:
-        current_cart.append({"name": prod[0], "price": prod[1]})
+        # Фикс: добавили image в чек
+        current_cart.append({"name": prod[0], "price": prod[1], "image": prod[2]})
         return jsonify({"status": "found", "name": prod[0], "price": prod[1], "image": prod[2]})
     return jsonify({"status": "new", "barcode": barcode})
 
-# Теперь принимаем FormData вместо сырого JSON
 @app.route('/add', methods=['POST'])
 def add():
     barcode = request.form.get('barcode')
@@ -61,7 +60,8 @@ def add():
         conn.execute("INSERT OR REPLACE INTO products (barcode, name, price, image) VALUES (?, ?, ?, ?)", 
                      (barcode, name, float(price), filename))
     export_json()
-    current_cart.append({"name": name, "price": float(price)})
+    # Фикс: добавили image в чек
+    current_cart.append({"name": name, "price": float(price), "image": filename})
     return jsonify({"status": "ok"})
 
 @app.route('/api/cart', methods=['GET'])
