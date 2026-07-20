@@ -1,3 +1,4 @@
+import subprocess
 import os
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, jsonify
@@ -21,7 +22,8 @@ def export_json():
         data = [{"barcode": r[0], "name": r[1], "price": r[2], "image": r[3]} for r in cur.fetchall()]
     with open("products.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
-
+        # Тот самый фоновый пинок скрипта после записи файла
+    subprocess.Popen(['bash', '/home/sakura/mama-shop/push_data.sh'])
 @app.route('/scanner')
 def scanner():
     return render_template('scanner.html')
