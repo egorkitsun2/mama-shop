@@ -17,6 +17,7 @@
         <table class="w-full text-left">
           <thead>
             <tr class="bg-gray-200">
+              <th class="p-4 w-24">Фото</th>
               <th class="p-4 text-2xl">Товар</th>
               <th class="p-4 text-2xl text-right">Цена (₸)</th>
             </tr>
@@ -41,16 +42,21 @@
           .then((res) => res.json())
           .then((data) => {
             const cartHtml = data.cart
-              .map(
-                (item) =>
-                  `<tr class="border-b"><td class="p-4">${item.name}</td><td class="p-4 text-right">${item.price}</td></tr>`,
-              )
+              .map((item) => {
+                const imgTag = item.image
+                  ? `<img src="/static/img/${item.image}" class="w-16 h-16 object-cover rounded shadow">`
+                  : "";
+                return `<tr class="border-b">
+              <td class="p-4">${imgTag}</td>
+              <td class="p-4">${item.name}</td>
+              <td class="p-4 text-right">${item.price}</td>
+            </tr>`;
+              })
               .join("");
 
             document.getElementById("cart").innerHTML = cartHtml;
             document.getElementById("total").innerText = data.total + " ₸";
 
-            // Автопрокрутка списка вниз
             const cartBody = document.getElementById("cart");
             cartBody.parentElement.parentElement.scrollTop =
               cartBody.parentElement.parentElement.scrollHeight;
@@ -58,7 +64,6 @@
           .catch((err) => console.error("Ошибка связи с сервером", err));
       }
 
-      // Опрашиваем сервер каждую секунду
       setInterval(updateDisplay, 1000);
       updateDisplay();
     </script>
