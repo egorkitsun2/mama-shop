@@ -16,5 +16,11 @@
         "name": "Orbit",
         "price": 200.0,
         "image": "4009900021685_photo.jpg"
+    },
+    {
+        "barcode": "8680945416818",
+        "name": "Жувачки \"POP GuM\" ",
+        "price": 80.0,
+        "image": "8680945416818_photo.jpg"
     }
 ]
