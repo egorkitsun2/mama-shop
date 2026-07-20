@@ -25,9 +25,9 @@ def export_json():
         # Тот самый фоновый пинок скрипта после записи файла
     subprocess.Popen(['bash', '/home/sakura/mama-shop/push_data.sh'])
 
-# @app.route('/scanner')
-# def scanner():
-#     return render_template('scanner.html')
+@app.route('/scanner')
+def scanner():
+    return render_template('scanner.html')
 
 # Страница для монитора
 @app.route('/display')

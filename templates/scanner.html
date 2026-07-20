@@ -84,22 +84,25 @@
 
     <script>
       let currentBarcode = "";
-      let html5QrcodeScanner;
+
+      // Инициализируем сканер СТРОГО ОДИН РАЗ в глобальной области
+      let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 250, height: 100 } },
+        false,
+      );
 
       function startScanner() {
         document.getElementById("rescan").classList.add("hidden");
         document.getElementById("result").innerText =
           "Наведи камеру на штрихкод";
-        html5QrcodeScanner = new Html5QrcodeScanner(
-          "reader",
-          { fps: 10, qrbox: { width: 250, height: 100 } },
-          false,
-        );
+        // Просто запускаем процесс сканирования
         html5QrcodeScanner.render(onScanSuccess);
       }
 
       function onScanSuccess(decodedText) {
-        html5QrcodeScanner.clear(); // Вырубаем сканер штрихкодов
+        // Вырубаем считывание, чтобы не пикало 10 раз подряд
+        html5QrcodeScanner.clear();
 
         fetch("/scan", {
           method: "POST",
@@ -118,7 +121,7 @@
                 "Штрихкод: " + decodedText;
               document
                 .getElementById("newProductModal")
-                .classList.remove("hidden"); // Показываем форму
+                .classList.remove("hidden");
             }
           });
       }
@@ -163,11 +166,10 @@
             sendData(formData);
           });
         } else {
-          sendData(formData); // Если забыл сделать фото, шлем без него
+          sendData(formData);
         }
       }
 
-      // Магия сжатия через Canvas
       function compressImage(file, maxSize, callback) {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -196,7 +198,6 @@
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Жмем в JPEG, качество 70%
             canvas.toBlob(
               (blob) => {
                 callback(blob);
@@ -220,6 +221,7 @@
         });
       }
 
+      // Первичный запуск при открытии страницы
       startScanner();
     </script>
   </body>
