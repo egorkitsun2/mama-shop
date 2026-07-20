@@ -10,5 +10,11 @@
         "name": "Рефтамид",
         "price": 1620.0,
         "image": "4600171107483_photo.jpg"
+    },
+    {
+        "barcode": "4009900021685",
+        "name": "Orbit",
+        "price": 200.0,
+        "image": "4009900021685_photo.jpg"
     }
 ]
