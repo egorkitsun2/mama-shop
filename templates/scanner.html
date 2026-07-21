@@ -7,8 +7,8 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-gray-100 p-4">
-    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4">
+  <body class="bg-gray-100 p-4 pb-12">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4 mb-4">
       <h2 class="text-xl font-bold mb-4 text-center text-gray-800">
         Касса (Скан)
       </h2>
@@ -18,7 +18,7 @@
       </div>
       <button
         id="rescan"
-        class="w-full bg-blue-500 text-white py-2 rounded hidden mb-4"
+        class="w-full bg-blue-500 text-white py-2 rounded hidden mb-4 font-bold"
         onclick="startScanner()"
       >
         Сканировать еще
@@ -31,53 +31,89 @@
         🗑 Новый покупатель (Очистить чек)
       </button>
     </div>
-    <div class="text-center mt-4 text-gray-600 text-sm">
-      <p>Сканер работает только на телефоне</p>
-      <p>Если не видишь камеру, попробуй открыть в другом браузере</p>
+
+    <!-- Блок управления открытым чеком -->
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4">
+      <div class="flex justify-between items-center mb-3 border-b pb-2">
+        <h3 class="font-bold text-gray-800">Текущий чек</h3>
+        <span id="scan-cart-total" class="font-bold text-green-600 text-lg"
+          >0 ₸</span
+        >
+      </div>
+
+      <div id="active-cart-list" class="space-y-2 max-h-60 overflow-y-auto">
+        <p class="text-center text-gray-400 text-sm py-4">Чек пуст</p>
+      </div>
     </div>
 
-    <!-- Форма для нового товара (скрыта по умолчанию) -->
+    <!-- Форма для нового товара -->
     <div
       id="newProductModal"
-      class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4"
+      class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4 z-50 overflow-y-auto"
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-xl font-bold mb-4">Новый товар</h3>
-        <p id="newBarcodeLabel" class="text-gray-600 mb-4"></p>
+      <div class="bg-white rounded-lg p-6 w-full max-w-md my-8">
+        <h3 class="text-xl font-bold mb-2">Новый товар</h3>
+        <p
+          id="newBarcodeLabel"
+          class="text-gray-600 mb-4 font-mono text-sm"
+        ></p>
 
         <input
           type="text"
           id="newName"
           placeholder="Название товара"
-          class="w-full border p-2 mb-4 rounded text-lg"
+          class="w-full border p-2 mb-3 rounded text-base"
         />
         <input
           type="number"
           id="newPrice"
           placeholder="Цена (₸)"
-          class="w-full border p-2 mb-4 rounded text-lg"
+          class="w-full border p-2 mb-3 rounded text-base"
         />
 
-        <label class="block mb-2 font-bold text-gray-700"
-          >Сделай фото или выбери из галереи:</label
+        <label class="block mb-1 text-xs font-bold text-gray-600 uppercase"
+          >Категория:</label
+        >
+        <select
+          id="newCategory"
+          onchange="updateSubcategories()"
+          class="w-full border p-2 mb-3 rounded text-base bg-white"
+        >
+          <option value="">-- Выберите категорию --</option>
+        </select>
+
+        <div id="subcatContainer" class="hidden">
+          <label class="block mb-1 text-xs font-bold text-gray-600 uppercase"
+            >Подкатегория:</label
+          >
+          <select
+            id="newSubcategory"
+            class="w-full border p-2 mb-3 rounded text-base bg-white"
+          >
+            <option value="">-- Выберите подкатегорию --</option>
+          </select>
+        </div>
+
+        <label class="block mb-1 text-xs font-bold text-gray-600 uppercase"
+          >Фото товара:</label
         >
         <input
           type="file"
           id="newImage"
           accept="image/*"
-          class="w-full mb-4 border p-2"
+          class="w-full mb-4 border p-2 rounded text-sm"
         />
 
-        <div class="flex justify-between mt-4">
+        <div class="flex justify-between mt-4 gap-2">
           <button
             onclick="closeModal()"
-            class="bg-gray-400 text-white px-4 py-2 rounded font-bold"
+            class="w-1/2 bg-gray-400 text-white py-2 rounded font-bold"
           >
             Отмена
           </button>
           <button
             onclick="saveProduct()"
-            class="bg-green-500 text-white px-4 py-2 rounded font-bold"
+            class="w-1/2 bg-green-500 text-white py-2 rounded font-bold"
           >
             Сохранить
           </button>
@@ -88,7 +124,67 @@
     <script>
       let currentBarcode = "";
 
-      // Инициализируем сканер СТРОГО ОДИН РАЗ в глобальной области
+      const categoriesData = {
+        Алкоголь: [],
+        Напитки: [],
+        "Хоз. товары": [],
+        Выпечка: [],
+        Снеки: [],
+        Приправы: [],
+        Крупы: [],
+        "Чай — Кофе": [],
+        Специи: [],
+        "Хлебобулочные изделия": [],
+        "Молочная продукция": [
+          "Молоко",
+          "Кефир — Ряженка",
+          "Йогурты",
+          "Сметана",
+          "Сыр",
+        ],
+        Полуфабрикаты: ["Пельмени", "Манты", "Вареники", "Котлеты", "Голубцы"],
+        Сладости: ["Шоколад", "Жвачки", "Попкорн"],
+        Мука: [],
+        "Мучные изделия": [],
+        "Макаронные изделия": [],
+        Яйца: [],
+        Мороженое: [],
+        "Мясная продукция": [],
+        "Консервированные товары": [],
+        Масла: [],
+        "Пищевая продукция (сода, соль, уксус)": [],
+        Овощи: [],
+        Прочее: [],
+      };
+
+      function initCategories() {
+        const catSelect = document.getElementById("newCategory");
+        catSelect.innerHTML = `<option value="">-- Выберите категорию --</option>`;
+        Object.keys(categoriesData).forEach((cat) => {
+          catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+      }
+
+      function updateSubcategories() {
+        const catSelect = document.getElementById("newCategory");
+        const subcatContainer = document.getElementById("subcatContainer");
+        const subcatSelect = document.getElementById("newSubcategory");
+        const selectedCat = catSelect.value;
+
+        const subcats = categoriesData[selectedCat] || [];
+
+        if (subcats.length > 0) {
+          subcatSelect.innerHTML = `<option value="">-- Не выбрано --</option>`;
+          subcats.forEach((sub) => {
+            subcatSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+          });
+          subcatContainer.classList.remove("hidden");
+        } else {
+          subcatContainer.classList.add("hidden");
+          subcatSelect.innerHTML = `<option value="">-- Не выбрано --</option>`;
+        }
+      }
+
       let html5QrcodeScanner = new Html5QrcodeScanner(
         "reader",
         { fps: 10, qrbox: { width: 250, height: 100 } },
@@ -99,12 +195,10 @@
         document.getElementById("rescan").classList.add("hidden");
         document.getElementById("result").innerText =
           "Наведи камеру на штрихкод";
-        // Просто запускаем процесс сканирования
         html5QrcodeScanner.render(onScanSuccess);
       }
 
       function onScanSuccess(decodedText) {
-        // Вырубаем считывание, чтобы не пикало 10 раз подряд
         html5QrcodeScanner.clear();
 
         fetch("/scan", {
@@ -116,8 +210,9 @@
           .then((data) => {
             if (data.status === "found") {
               document.getElementById("result").innerHTML =
-                `<span class="text-green-600">В чеке: ${data.name}</span>`;
+                `<span class="text-green-600">В чеке: ${data.name} (×${data.qty})</span>`;
               document.getElementById("rescan").classList.remove("hidden");
+              updateScannerCartUI();
             } else {
               currentBarcode = decodedText;
               document.getElementById("newBarcodeLabel").innerText =
@@ -129,10 +224,53 @@
           });
       }
 
+      function updateScannerCartUI() {
+        fetch("/api/cart")
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("scan-cart-total").innerText =
+              data.total + " ₸";
+            const listEl = document.getElementById("active-cart-list");
+
+            if (data.cart.length === 0) {
+              listEl.innerHTML = `<p class="text-center text-gray-400 text-sm py-4">Чек пуст</p>`;
+              return;
+            }
+
+            listEl.innerHTML = data.cart
+              .map(
+                (item) => `
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200 text-sm">
+                <div class="flex-grow pr-2">
+                  <p class="font-semibold text-gray-800 leading-tight">${item.name}</p>
+                  <p class="text-xs text-gray-500">${item.price} ₸ × ${item.qty} = <span class="font-bold text-gray-700">${item.price * item.qty} ₸</span></p>
+                </div>
+                <button 
+                  onclick="removeFromCart('${item.barcode}')" 
+                  class="bg-red-100 hover:bg-red-200 text-red-600 font-bold px-3 py-1.5 rounded transition-colors"
+                >
+                  -1
+                </button>
+              </div>
+            `,
+              )
+              .join("");
+          });
+      }
+
+      function removeFromCart(barcode) {
+        fetch("/api/cart/remove", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ barcode: barcode }),
+        }).then(() => updateScannerCartUI());
+      }
+
       function clearCart() {
         fetch("/api/cart/clear", { method: "POST" }).then(() => {
           document.getElementById("result").innerHTML =
             `<span class="text-red-500">Чек сброшен</span>`;
+          updateScannerCartUI();
           if (!document.getElementById("rescan").classList.contains("hidden")) {
             startScanner();
           }
@@ -144,12 +282,18 @@
         document.getElementById("newName").value = "";
         document.getElementById("newPrice").value = "";
         document.getElementById("newImage").value = "";
+        document.getElementById("newCategory").value = "";
+        document.getElementById("subcatContainer").classList.add("hidden");
         startScanner();
       }
 
       function saveProduct() {
         const name = document.getElementById("newName").value;
         const price = document.getElementById("newPrice").value;
+        const category =
+          document.getElementById("newCategory").value || "Прочее";
+        const subcategory =
+          document.getElementById("newSubcategory").value || "";
         const fileInput = document.getElementById("newImage");
 
         if (!name || !price) {
@@ -161,6 +305,8 @@
         formData.append("barcode", currentBarcode);
         formData.append("name", name);
         formData.append("price", price);
+        formData.append("category", category);
+        formData.append("subcategory", subcategory);
 
         if (fileInput.files.length > 0) {
           const file = fileInput.files[0];
@@ -221,10 +367,12 @@
           document.getElementById("result").innerHTML =
             `<span class="text-green-600">Добавлено: ${formData.get("name")}</span>`;
           document.getElementById("rescan").classList.remove("hidden");
+          updateScannerCartUI();
         });
       }
 
-      // Первичный запуск при открытии страницы
+      initCategories();
+      updateScannerCartUI();
       startScanner();
     </script>
   </body>
