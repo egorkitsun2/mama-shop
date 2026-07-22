@@ -1,26 +1,18 @@
 [
     {
-        "barcode": "4620739971325",
-        "name": "Освежитель воздуха ",
-        "price": 1269.0,
-        "image": "4620739971325_photo.jpg"
+        "barcode": "8683130020340",
+        "name": "Дезодорант Rexona",
+        "price": 1530.0,
+        "image": "8683130020340_photo.jpg",
+        "category": "Хоз. товары",
+        "subcategory": ""
     },
     {
-        "barcode": "4600171107483",
-        "name": "Рефтамид",
-        "price": 1620.0,
-        "image": "4600171107483_photo.jpg"
-    },
-    {
-        "barcode": "4009900021685",
-        "name": "Orbit",
-        "price": 200.0,
-        "image": "4009900021685_photo.jpg"
-    },
-    {
-        "barcode": "8680945416818",
-        "name": "Жувачки \"POP GuM\" ",
-        "price": 80.0,
-        "image": "8680945416818_photo.jpg"
+        "barcode": "82856938325",
+        "name": "Резинки",
+        "price": 20.0,
+        "image": "82856938325_photo.jpg",
+        "category": "Хоз. товары",
+        "subcategory": ""
     }
 ]
