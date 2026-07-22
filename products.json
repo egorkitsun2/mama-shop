@@ -14,5 +14,13 @@
         "image": "82856938325_photo.jpg",
         "category": "Хоз. товары",
         "subcategory": ""
+    },
+    {
+        "barcode": "6970259791018",
+        "name": "Ушные палочки",
+        "price": 500.0,
+        "image": "6970259791018_photo.jpg",
+        "category": "Бытовая химия и гигиена",
+        "subcategory": "Мыло и уход за собой"
     }
 ]
