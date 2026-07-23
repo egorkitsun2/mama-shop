@@ -5,7 +5,11 @@
         "price": 1530.0,
         "image": "8683130020340_photo.jpg",
         "category": "Хоз. товары",
-        "subcategory": ""
+        "subcategory": "",
+        "volume_weight": "",
+        "images": [
+            "8683130020340_photo.jpg"
+        ]
     },
     {
         "barcode": "6970259791018",
@@ -13,7 +17,11 @@
         "price": 500.0,
         "image": "6970259791018_photo.jpg",
         "category": "Бытовая химия и гигиена",
-        "subcategory": "Мыло и уход за собой"
+        "subcategory": "Мыло и уход за собой",
+        "volume_weight": "",
+        "images": [
+            "6970259791018_photo.jpg"
+        ]
     },
     {
         "barcode": "23853520754",
@@ -21,7 +29,11 @@
         "price": 500.0,
         "image": "23853520754.png",
         "category": "Бытовая химия и гигиена",
-        "subcategory": "Хозяйственные мелочи"
+        "subcategory": "Хозяйственные мелочи",
+        "volume_weight": "",
+        "images": [
+            "23853520754.png"
+        ]
     },
     {
         "barcode": "82856938325",
@@ -29,7 +41,23 @@
         "price": 20.0,
         "image": "82856938325.png",
         "category": "Хоз. товары",
-        "subcategory": ""
+        "subcategory": "",
+        "volume_weight": "",
+        "images": [
+            "82856938325.png"
+        ]
+    },
+    {
+        "barcode": "0916156975",
+        "name": "Отвертка (трещетка)",
+        "price": 5000.0,
+        "image": "0916156975_1.png",
+        "category": "Бытовая химия и гигиена",
+        "subcategory": "Хозяйственные мелочи",
+        "volume_weight": "200г.",
+        "images": [
+            "0916156975_1.png"
+        ]
     },
     {
         "barcode": "8716309082969",
@@ -37,6 +65,10 @@
         "price": 5.0,
         "image": "8716309082969.png",
         "category": "Бытовая химия и гигиена",
-        "subcategory": "Хозяйственные мелочи"
+        "subcategory": "Хозяйственные мелочи",
+        "volume_weight": "0",
+        "images": [
+            "8716309082969.png"
+        ]
     }
 ]
