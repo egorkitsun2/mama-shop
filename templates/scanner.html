@@ -6,103 +6,246 @@
     <title>Сканер (Телефон)</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { darkMode: "class" };
+      (function () {
+        const theme = localStorage.getItem("theme") || "system";
+        const isDark =
+          theme === "dark" ||
+          (theme === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (isDark) document.documentElement.classList.add("dark");
+      })();
+    </script>
   </head>
-  <body class="bg-gray-100 p-4 pb-12">
-    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4 mb-4">
-      <h2 class="text-xl font-bold mb-4 text-center text-gray-800">
+  <body
+    class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 p-4 pb-12 transition-colors"
+  >
+    <div
+      class="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4 border border-gray-100 dark:border-gray-700"
+    >
+      <h2
+        class="text-xl font-bold mb-4 text-center text-gray-800 dark:text-white"
+      >
         Касса (Скан)
       </h2>
-      <div id="reader" class="w-full mb-4 overflow-hidden rounded"></div>
-      <div id="result" class="text-center font-bold text-lg text-blue-600 mb-4">
+
+      <!-- Панель режимов и выбора количества -->
+      <div
+        id="mode-bar"
+        class="mb-4 p-2.5 bg-blue-50 dark:bg-gray-900/80 border border-blue-200 dark:border-gray-700 rounded-lg transition-colors"
+      >
+        <div class="flex justify-between items-center mb-2">
+          <div
+            class="text-xs font-bold uppercase tracking-wide text-gray-600 dark:text-gray-400"
+          >
+            Режим:
+            <span
+              id="mode-label"
+              class="text-blue-600 dark:text-blue-400 font-extrabold"
+              >ПРОДАЖА</span
+            >
+          </div>
+          <div id="qty-container" class="flex items-center gap-1.5">
+            <label
+              for="scan-qty"
+              class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase"
+              >Кол-во:</label
+            >
+            <input
+              type="number"
+              id="scan-qty"
+              value="1"
+              min="1"
+              max="999"
+              class="w-16 p-1 text-xs border rounded font-bold text-center bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-blue-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            id="btn-mode-sell"
+            type="button"
+            onclick="setMode('sell')"
+            class="py-1.5 px-2 text-xs font-bold rounded bg-blue-600 text-white shadow-sm"
+          >
+            Продажа
+          </button>
+          <button
+            id="btn-mode-add"
+            type="button"
+            onclick="setMode('add')"
+            class="py-1.5 px-2 text-xs font-bold rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            Добавка
+          </button>
+          <button
+            id="btn-mode-edit"
+            type="button"
+            onclick="setMode('edit')"
+            class="py-1.5 px-2 text-xs font-bold rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            Редакт
+          </button>
+        </div>
+      </div>
+
+      <!-- Контейнер камеры -->
+      <div
+        id="reader"
+        class="w-full mb-3 overflow-hidden rounded min-h-[250px] bg-gray-900"
+      ></div>
+
+      <!-- Кнопка без штрихкода -->
+      <div class="mb-3">
+        <button
+          type="button"
+          onclick="openModalForNoBarcode()"
+          class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded font-bold text-xs active:scale-95 transition-transform"
+        >
+          ➕ Добавить товар без штрихкода
+        </button>
+      </div>
+
+      <div
+        id="result"
+        class="text-center font-bold text-lg text-blue-600 dark:text-blue-400 mb-2"
+      >
         Наведи камеру на штрихкод
       </div>
+
       <button
         id="rescan"
-        class="w-full bg-blue-500 text-white py-2 rounded hidden mb-4 font-bold"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded hidden mb-3 font-bold"
         onclick="startScanner()"
       >
         Сканировать еще
       </button>
-      <button
-        id="clearCart"
-        class="w-full bg-red-500 text-white py-3 rounded font-bold"
-        onclick="clearCart()"
-      >
-        🗑 Новый покупатель (Очистить чек)
-      </button>
+
+      <!-- Панель утилит -->
+      <div class="grid grid-cols-3 gap-1.5">
+        <button
+          id="clearCart"
+          class="bg-red-500 hover:bg-red-600 text-white py-2.5 rounded font-bold text-xs active:scale-95 transition-transform"
+          onclick="clearCart()"
+        >
+          🗑 Чек
+        </button>
+        <button
+          class="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded font-bold text-xs active:scale-95 transition-transform"
+          onclick="triggerBackup()"
+        >
+          💾 Бэкап
+        </button>
+        <button
+          class="bg-gray-800 hover:bg-gray-900 text-white py-2.5 rounded font-bold text-xs active:scale-95 transition-transform"
+          onclick="triggerManualSync()"
+        >
+          🔄 Git
+        </button>
+      </div>
     </div>
 
-    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4">
-      <div class="flex justify-between items-center mb-3 border-b pb-2">
-        <h3 class="font-bold text-gray-800">Текущий чек</h3>
-        <span id="scan-cart-total" class="font-bold text-green-600 text-lg"
+    <!-- Чек -->
+    <div
+      class="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-100 dark:border-gray-700"
+    >
+      <div
+        class="flex justify-between items-center mb-3 border-b border-gray-200 dark:border-gray-700 pb-2"
+      >
+        <h3 class="font-bold text-gray-800 dark:text-white">Текущий чек</h3>
+        <span
+          id="scan-cart-total"
+          class="font-bold text-green-600 dark:text-green-400 text-lg"
           >0 ₸</span
         >
       </div>
       <div id="active-cart-list" class="space-y-2 max-h-60 overflow-y-auto">
-        <p class="text-center text-gray-400 text-sm py-4">Чек пуст</p>
+        <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-4">
+          Чек пуст
+        </p>
       </div>
     </div>
 
-    <!-- Модалка нового товара -->
+    <!-- Модалка добавления/редактирования -->
     <div
       id="newProductModal"
-      class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4 z-50 overflow-y-auto"
+      class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 overflow-y-auto"
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md my-8">
-        <h3 class="text-xl font-bold mb-2">Новый товар</h3>
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md my-8 border border-gray-100 dark:border-gray-700"
+      >
+        <h3
+          id="modalTitle"
+          class="text-xl font-bold mb-2 text-gray-900 dark:text-white"
+        >
+          Новый товар
+        </h3>
         <p
           id="newBarcodeLabel"
-          class="text-gray-600 mb-4 font-mono text-sm"
+          class="text-gray-600 dark:text-gray-400 mb-4 font-mono text-sm"
         ></p>
 
         <input
           type="text"
           id="newName"
           placeholder="Название товара"
-          class="w-full border p-2 mb-3 rounded text-base"
+          class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         />
         <input
           type="number"
           id="newPrice"
           placeholder="Цена (₸)"
-          class="w-full border p-2 mb-3 rounded text-base"
+          class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-2 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        />
+        <input
+          type="number"
+          id="newOldPrice"
+          placeholder="Старая цена / Без скидки (необязательно)"
+          class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-gray-50 dark:bg-gray-900/60 text-gray-900 dark:text-white"
+        />
+        <input
+          type="text"
+          id="newVolumeWeight"
+          placeholder="Объем / Вес (напр. 0.5 л, 250 г, 1 кг)"
+          class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         />
 
-        <!-- Поиск Категории через datalist -->
-        <label class="block mb-1 text-xs font-bold text-gray-600 uppercase"
-          >Категория (начни вводить):</label
+        <label
+          class="block mb-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase"
+          >Категория:</label
         >
         <input
           list="categories-list"
           id="newCategory"
           placeholder="Поиск категории..."
           onchange="updateSubcategories()"
-          class="w-full border p-2 mb-3 rounded text-base bg-white"
+          class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         />
         <datalist id="categories-list"></datalist>
 
-        <!-- Поиск Подкатегории -->
         <div id="subcatContainer" class="hidden">
-          <label class="block mb-1 text-xs font-bold text-gray-600 uppercase"
+          <label
+            class="block mb-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase"
             >Подкатегория:</label
           >
           <input
             list="subcategories-list"
             id="newSubcategory"
             placeholder="Поиск подкатегории..."
-            class="w-full border p-2 mb-3 rounded text-base bg-white"
+            class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
           />
           <datalist id="subcategories-list"></datalist>
         </div>
 
-        <!-- Выбор / Снимка фото -->
-        <label class="block mb-1 text-xs font-bold text-gray-600 uppercase"
-          >Фото товара:</label
+        <label
+          class="block mb-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase"
+          >Фото товара (ракурсы):</label
         >
-        <div class="grid grid-cols-2 gap-2 mb-4">
+        <div class="grid grid-cols-2 gap-2 mb-2">
           <label
-            class="bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold p-2 rounded text-center border border-blue-200 cursor-pointer text-xs flex flex-col items-center justify-center"
+            class="bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-600 dark:text-blue-400 font-semibold p-2 rounded text-center border border-blue-200 dark:border-blue-800 cursor-pointer text-xs flex flex-col items-center justify-center"
           >
             <span>📷 Сделать фото</span>
             <input
@@ -110,38 +253,38 @@
               id="cameraInput"
               accept="image/*"
               capture="environment"
+              multiple
               class="hidden"
               onchange="handleFileSelect(this)"
             />
           </label>
           <label
-            class="bg-gray-50 hover:bg-gray-100 text-gray-600 font-semibold p-2 rounded text-center border border-gray-200 cursor-pointer text-xs flex flex-col items-center justify-center"
+            class="bg-gray-50 dark:bg-gray-700/60 hover:bg-gray-100 text-gray-600 dark:text-gray-300 font-semibold p-2 rounded text-center border border-gray-200 dark:border-gray-600 cursor-pointer text-xs flex flex-col items-center justify-center"
           >
             <span>🖼 Из галереи</span>
             <input
               type="file"
               id="galleryInput"
               accept="image/*"
+              multiple
               class="hidden"
               onchange="handleFileSelect(this)"
             />
           </label>
         </div>
-        <p
-          id="fileNamePreview"
-          class="text-xs text-green-600 mb-3 truncate font-semibold"
-        ></p>
+
+        <div id="fileNamePreview" class="mb-3"></div>
 
         <div class="flex justify-between mt-4 gap-2">
           <button
             onclick="closeModal()"
-            class="w-1/2 bg-gray-400 text-white py-2 rounded font-bold"
+            class="w-1/2 bg-gray-400 hover:bg-gray-500 text-white py-2 rounded font-bold"
           >
             Отмена
           </button>
           <button
             onclick="saveProduct()"
-            class="w-1/2 bg-green-500 text-white py-2 rounded font-bold"
+            class="w-1/2 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-bold"
           >
             Сохранить
           </button>
@@ -151,7 +294,36 @@
 
     <script>
       let currentBarcode = "";
-      let selectedFile = null;
+      let lastScannedProduct = null;
+      let selectedFiles = [];
+      let currentMode = "sell";
+
+      const modeConfigs = {
+        sell: {
+          label: "ПРОДАЖА",
+          labelClass: "text-blue-600 dark:text-blue-400 font-extrabold",
+          barClass:
+            "mb-4 p-2.5 bg-blue-50 dark:bg-gray-900/80 border border-blue-200 dark:border-gray-700 rounded-lg transition-colors",
+          btnId: "btn-mode-sell",
+          btnClass: "bg-blue-600 text-white",
+        },
+        add: {
+          label: "ДОБАВЛЕНИЕ",
+          labelClass: "text-amber-600 dark:text-amber-400 font-extrabold",
+          barClass:
+            "mb-4 p-2.5 bg-amber-50 dark:bg-gray-900/80 border border-amber-200 dark:border-gray-700 rounded-lg transition-colors",
+          btnId: "btn-mode-add",
+          btnClass: "bg-amber-600 text-white",
+        },
+        edit: {
+          label: "РЕДАКТИРОВАНИЕ",
+          labelClass: "text-purple-600 dark:text-purple-400 font-extrabold",
+          barClass:
+            "mb-4 p-2.5 bg-purple-50 dark:bg-gray-900/80 border border-purple-200 dark:border-gray-700 rounded-lg transition-colors",
+          btnId: "btn-mode-edit",
+          btnClass: "bg-purple-600 text-white",
+        },
+      };
 
       const CATALOG_STRUCTURE = {
         Алкоголь: [
@@ -189,7 +361,6 @@
           "Макаронные изделия",
           "Растительные масла",
           "Приправы и специи",
-          "Сода, соль, уксус",
         ],
         "Сладости и снеки": [
           "Шоколад и конфеты",
@@ -205,6 +376,46 @@
           "Хозяйственные мелочи",
         ],
       };
+
+      let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 250, height: 100 } },
+        false,
+      );
+
+      function startScanner() {
+        document.getElementById("rescan").classList.add("hidden");
+        document.getElementById("result").innerText =
+          "Наведи камеру на штрихкод";
+        html5QrcodeScanner.render(onScanSuccess);
+      }
+
+      function setMode(mode) {
+        if (!modeConfigs[mode]) return;
+        currentMode = mode;
+
+        const cfg = modeConfigs[mode];
+        document.getElementById("mode-label").innerText = cfg.label;
+        document.getElementById("mode-label").className = cfg.labelClass;
+        document.getElementById("mode-bar").className = cfg.barClass;
+
+        const qtyContainer = document.getElementById("qty-container");
+        if (mode === "sell") {
+          qtyContainer.classList.remove("hidden");
+        } else {
+          qtyContainer.classList.add("hidden");
+        }
+
+        ["sell", "add", "edit"].forEach((m) => {
+          const btn = document.getElementById(modeConfigs[m].btnId);
+          btn.className =
+            m === mode
+              ? `py-1.5 px-2 text-xs font-bold rounded shadow-sm ${cfg.btnClass}`
+              : "py-1.5 px-2 text-xs font-bold rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600";
+        });
+
+        startScanner();
+      }
 
       function initCategories() {
         const catList = document.getElementById("categories-list");
@@ -230,49 +441,187 @@
       }
 
       function handleFileSelect(input) {
-        if (input.files && input.files[0]) {
-          selectedFile = input.files[0];
-          document.getElementById("fileNamePreview").innerText =
-            "✓ Фото выбрано: " + selectedFile.name;
+        if (input.files && input.files.length > 0) {
+          const newFiles = Array.from(input.files);
+          selectedFiles = selectedFiles.concat(newFiles);
+          input.value = "";
+          updatePhotoPreview();
         }
       }
 
-      let html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 100 } },
-        false,
-      );
+      function updatePhotoPreview() {
+        const previewEl = document.getElementById("fileNamePreview");
+        if (selectedFiles.length > 0) {
+          const thumbsHtml = selectedFiles
+            .map((file, idx) => {
+              const url = URL.createObjectURL(file);
+              return `
+                <div class="relative w-12 h-12 rounded border border-gray-300 dark:border-gray-600 overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-900">
+                  <img src="${url}" class="w-full h-full object-cover">
+                  <button
+                    type="button"
+                    onclick="removePhoto(${idx})"
+                    class="absolute top-0 right-0 bg-red-600 text-white text-[10px] w-4 h-4 flex items-center justify-center font-bold rounded-bl active:scale-90 transition-transform"
+                  >✕</button>
+                </div>
+              `;
+            })
+            .join("");
 
-      function startScanner() {
-        document.getElementById("rescan").classList.add("hidden");
-        document.getElementById("result").innerText =
-          "Наведи камеру на штрихкод";
-        html5QrcodeScanner.render(onScanSuccess);
+          previewEl.innerHTML = `
+            <div class="bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
+              <div class="flex justify-between items-center mb-1.5">
+                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Снято кадров: ${selectedFiles.length}</span>
+                <button type="button" onclick="resetPhotos()" class="text-[10px] font-bold text-red-500 hover:underline">Очистить всё</button>
+              </div>
+              <div class="flex gap-1.5 overflow-x-auto pb-1">
+                ${thumbsHtml}
+              </div>
+            </div>
+          `;
+        } else {
+          previewEl.innerHTML = "";
+        }
+      }
+
+      function removePhoto(index) {
+        selectedFiles.splice(index, 1);
+        updatePhotoPreview();
+      }
+
+      function resetPhotos() {
+        selectedFiles = [];
+        updatePhotoPreview();
+      }
+
+      function openModalForNoBarcode() {
+        currentMode = "add";
+        setMode("add");
+        currentBarcode = "";
+        openModalForNew("");
       }
 
       function onScanSuccess(decodedText) {
-        html5QrcodeScanner.clear();
+        currentBarcode = decodedText;
+        const qtyInput = document.getElementById("scan-qty");
+        const qtyVal = parseInt(qtyInput ? qtyInput.value : "1") || 1;
+
         fetch("/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ barcode: decodedText }),
+          body: JSON.stringify({
+            barcode: decodedText,
+            mode: currentMode,
+            qty: qtyVal,
+          }),
         })
           .then((res) => res.json())
           .then((data) => {
-            if (data.status === "found") {
-              document.getElementById("result").innerHTML =
-                `<span class="text-green-600">В чеке: ${data.name} (×${data.qty})</span>`;
+            if (currentMode === "sell") {
+              if (data.status === "found") {
+                lastScannedProduct = data;
+                const totalAddedPrice = data.price * qtyVal;
+                document.getElementById("result").innerHTML =
+                  `<span class="text-green-600 dark:text-green-400">В чеке: ${data.name} × ${qtyVal} (${totalAddedPrice} ₸)</span>`;
+                updateScannerCartUI();
+                if (qtyInput) qtyInput.value = 1;
+              } else {
+                lastScannedProduct = null;
+                document.getElementById("result").innerHTML =
+                  `<span class="text-red-500 font-bold">❌ Товар не найден в базе!</span>`;
+              }
               document.getElementById("rescan").classList.remove("hidden");
-              updateScannerCartUI();
-            } else {
-              currentBarcode = decodedText;
-              document.getElementById("newBarcodeLabel").innerText =
-                "Штрихкод: " + decodedText;
-              document
-                .getElementById("newProductModal")
-                .classList.remove("hidden");
+            } else if (currentMode === "add") {
+              if (data.status === "found") {
+                document.getElementById("result").innerHTML =
+                  `<span class="text-amber-600 dark:text-amber-400 font-bold">⚠️ Уже существует: ${data.name}</span>`;
+                document.getElementById("rescan").classList.remove("hidden");
+              } else {
+                lastScannedProduct = null;
+                openModalForNew(decodedText);
+              }
+            } else if (currentMode === "edit") {
+              if (data.status === "found") {
+                lastScannedProduct = data;
+                openEditModalForCurrent();
+              } else {
+                lastScannedProduct = null;
+                document.getElementById("result").innerHTML =
+                  `<span class="text-red-500 font-bold">❌ Нечего редактировать: товар не найден</span>`;
+                document.getElementById("rescan").classList.remove("hidden");
+              }
             }
+          })
+          .catch(() => {
+            document.getElementById("result").innerHTML =
+              `<span class="text-red-500">Ошибка сети или сервера</span>`;
+            document.getElementById("rescan").classList.remove("hidden");
           });
+      }
+
+      function openModalForNew(barcode) {
+        document.getElementById("modalTitle").innerText = "Новый товар";
+        document.getElementById("newBarcodeLabel").innerText = barcode
+          ? "Штрихкод: " + barcode
+          : "Штрихкод: [Автогенерация из названия]";
+        document.getElementById("newName").value = "";
+        document.getElementById("newPrice").value = "";
+        document.getElementById("newVolumeWeight").value = "";
+        document.getElementById("newCategory").value = "";
+        document.getElementById("newSubcategory").value = "";
+        document.getElementById("newOldPrice").value = "";
+
+        selectedFiles = [];
+        updatePhotoPreview();
+
+        document.getElementById("newProductModal").classList.remove("hidden");
+      }
+
+      function openEditModalForCurrent() {
+        if (!lastScannedProduct) return;
+        document.getElementById("modalTitle").innerText =
+          "Редактирование товара";
+        document.getElementById("newBarcodeLabel").innerText =
+          "Штрихкод: " + lastScannedProduct.barcode;
+        document.getElementById("newName").value = lastScannedProduct.name;
+        document.getElementById("newPrice").value = lastScannedProduct.price;
+        document.getElementById("newVolumeWeight").value =
+          lastScannedProduct.volume_weight || "";
+        document.getElementById("newCategory").value =
+          lastScannedProduct.category || "";
+        updateSubcategories();
+        document.getElementById("newSubcategory").value =
+          lastScannedProduct.subcategory || "";
+        document.getElementById("newOldPrice").value =
+          lastScannedProduct.old_price || "";
+
+        selectedFiles = [];
+        const existingCount =
+          (lastScannedProduct.images && lastScannedProduct.images.length) ||
+          (lastScannedProduct.image ? 1 : 0);
+
+        const previewEl = document.getElementById("fileNamePreview");
+        if (existingCount > 0) {
+          previewEl.innerHTML = `<p class="text-xs font-semibold text-green-600 dark:text-green-400 mb-2">📷 В базе уже есть фото (${existingCount} шт.)</p>`;
+        } else {
+          previewEl.innerHTML = "";
+        }
+
+        document.getElementById("newProductModal").classList.remove("hidden");
+      }
+
+      function triggerBackup() {
+        fetch("/api/backup", { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => alert("💾 " + data.message))
+          .catch(() => alert("Ошибка при создании бэкапа"));
+      }
+
+      function triggerManualSync() {
+        fetch("/api/sync", { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => alert("🚀 " + data.message))
+          .catch(() => alert("Ошибка при запуске Git Push"));
       }
 
       function updateScannerCartUI() {
@@ -283,20 +632,20 @@
               data.total + " ₸";
             const listEl = document.getElementById("active-cart-list");
             if (data.cart.length === 0) {
-              listEl.innerHTML = `<p class="text-center text-gray-400 text-sm py-4">Чек пуст</p>`;
+              listEl.innerHTML = `<p class="text-center text-gray-400 dark:text-gray-500 text-sm py-4">Чек пуст</p>`;
               return;
             }
             listEl.innerHTML = data.cart
               .map(
                 (item) => `
-              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200 text-sm">
-                <div class="flex-grow pr-2">
-                  <p class="font-semibold text-gray-800 leading-tight">${item.name}</p>
-                  <p class="text-xs text-gray-500">${item.price} ₸ × ${item.qty} = <span class="font-bold text-gray-700">${item.price * item.qty} ₸</span></p>
-                </div>
-                <button onclick="removeFromCart('${item.barcode}')" class="bg-red-100 hover:bg-red-200 text-red-600 font-bold px-3 py-1.5 rounded transition-colors">-1</button>
-              </div>
-            `,
+                  <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-900/60 p-2 rounded border border-gray-200 dark:border-gray-700 text-sm">
+                    <div class="flex-grow pr-2">
+                      <p class="font-semibold text-gray-800 dark:text-gray-200 leading-tight">${item.name}</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">${item.price} ₸ × ${item.qty} = <span class="font-bold text-gray-700 dark:text-gray-300">${item.price * item.qty} ₸</span></p>
+                    </div>
+                    <button onclick="removeFromCart('${item.barcode}')" class="bg-red-100 dark:bg-red-950/60 hover:bg-red-200 dark:hover:bg-red-900 text-red-600 dark:text-red-400 font-bold px-3 py-1.5 rounded transition-colors">-1</button>
+                  </div>
+                `,
               )
               .join("");
           });
@@ -322,22 +671,20 @@
 
       function closeModal() {
         document.getElementById("newProductModal").classList.add("hidden");
-        document.getElementById("newName").value = "";
-        document.getElementById("newPrice").value = "";
-        document.getElementById("newCategory").value = "";
-        document.getElementById("newSubcategory").value = "";
-        document.getElementById("fileNamePreview").innerText = "";
-        selectedFile = null;
+        selectedFiles = [];
+        updatePhotoPreview();
         startScanner();
       }
 
       function saveProduct() {
         const name = document.getElementById("newName").value;
         const price = document.getElementById("newPrice").value;
+        const volumeWeight = document.getElementById("newVolumeWeight").value;
         const category =
           document.getElementById("newCategory").value || "Прочее";
         const subcategory =
           document.getElementById("newSubcategory").value || "";
+        const oldPrice = document.getElementById("newOldPrice").value;
 
         if (!name || !price) {
           alert("Заполни название и цену!");
@@ -348,63 +695,26 @@
         formData.append("barcode", currentBarcode);
         formData.append("name", name);
         formData.append("price", price);
+        formData.append("old_price", oldPrice);
+        formData.append("volume_weight", volumeWeight);
         formData.append("category", category);
         formData.append("subcategory", subcategory);
 
-        if (selectedFile) {
-          compressImage(selectedFile, 800, (compressedBlob) => {
-            formData.append("image", compressedBlob, "photo.jpg");
-            sendData(formData);
+        if (selectedFiles.length > 0) {
+          selectedFiles.forEach((file) => {
+            formData.append("images", file);
           });
-        } else {
-          sendData(formData);
         }
-      }
 
-      function compressImage(file, maxSize, callback) {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function (event) {
-          const img = new Image();
-          img.src = event.target.result;
-          img.onload = function () {
-            const canvas = document.createElement("canvas");
-            let width = img.width;
-            let height = img.height;
-            if (width > height) {
-              if (width > maxSize) {
-                height *= maxSize / width;
-                width = maxSize;
-              }
-            } else {
-              if (height > maxSize) {
-                width *= maxSize / height;
-                height = maxSize;
-              }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob(
-              (blob) => {
-                callback(blob);
-              },
-              "image/jpeg",
-              0.7,
-            );
-          };
-        };
-      }
-
-      function sendData(formData) {
-        fetch("/add", { method: "POST", body: formData }).then(() => {
-          closeModal();
-          document.getElementById("result").innerHTML =
-            `<span class="text-green-600">Добавлено: ${formData.get("name")}</span>`;
-          document.getElementById("rescan").classList.remove("hidden");
-          updateScannerCartUI();
-        });
+        fetch("/add", { method: "POST", body: formData })
+          .then((res) => res.json())
+          .then((data) => {
+            closeModal();
+            document.getElementById("result").innerHTML =
+              `<span class="text-green-600 dark:text-green-400">Обновлено/Добавлено: ${name} (Код: ${data.barcode})</span>`;
+            document.getElementById("rescan").classList.remove("hidden");
+            updateScannerCartUI();
+          });
       }
 
       initCategories();
