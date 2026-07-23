@@ -7,29 +7,34 @@
   </head>
   <body class="bg-gray-100 p-8 h-screen overflow-hidden">
     <div
-      class="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6 h-full flex flex-col"
+      class="max-w-5xl mx-auto bg-white rounded-lg shadow-xl p-6 h-full flex flex-col"
     >
       <h1 class="text-4xl font-bold mb-6 text-center text-gray-800">
         Ваши покупки
       </h1>
 
       <div class="flex-grow overflow-auto mb-4 border-b">
-        <table class="w-full text-left">
+        <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-gray-200">
+            <tr class="bg-gray-200 text-gray-700">
               <th class="p-4 w-24">Фото</th>
               <th class="p-4 text-2xl">Товар</th>
+              <th class="p-4 text-2xl text-center">Кол-во</th>
               <th class="p-4 text-2xl text-right">Цена (₸)</th>
+              <th class="p-4 text-2xl text-right">Сумма (₸)</th>
             </tr>
           </thead>
-          <tbody id="cart" class="text-3xl font-medium">
-            <!-- Сюда прилетают товары с сервера -->
+          <tbody
+            id="cart"
+            class="text-2xl font-medium divide-y divide-gray-100"
+          >
+            <!-- Заполняется динамически -->
           </tbody>
         </table>
       </div>
 
       <div
-        class="flex justify-between items-center bg-gray-800 text-white p-6 rounded"
+        class="flex justify-between items-center bg-gray-800 text-white p-6 rounded-lg"
       >
         <span class="text-4xl font-bold">ИТОГО:</span>
         <span id="total" class="text-6xl font-bold text-green-400">0 ₸</span>
@@ -45,26 +50,31 @@
               .map((item) => {
                 const imgTag = item.image
                   ? `<img src="/static/img/${item.image}" class="w-16 h-16 object-cover rounded shadow">`
-                  : "";
-                return `<tr class="border-b">
-              <td class="p-4">${imgTag}</td>
-              <td class="p-4">${item.name}</td>
-              <td class="p-4 text-right">${item.price}</td>
-            </tr>`;
+                  : `<div class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">Нет фото</div>`;
+
+                return `<tr class="hover:bg-gray-50 transition-colors">
+                  <td class="p-4">${imgTag}</td>
+                  <td class="p-4 font-semibold text-gray-800">${item.name}</td>
+                  <td class="p-4 text-center">
+                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold">×${item.qty}</span>
+                  </td>
+                  <td class="p-4 text-right text-gray-500">${item.price}</td>
+                  <td class="p-4 text-right font-bold text-gray-900">${item.price * item.qty}</td>
+                </tr>`;
               })
               .join("");
 
-            document.getElementById("cart").innerHTML = cartHtml;
+            const cartTable = document.getElementById("cart");
+            cartTable.innerHTML = cartHtml;
             document.getElementById("total").innerText = data.total + " ₸";
 
-            const cartBody = document.getElementById("cart");
-            cartBody.parentElement.parentElement.scrollTop =
-              cartBody.parentElement.parentElement.scrollHeight;
+            const container = cartTable.parentElement.parentElement;
+            container.scrollTop = container.scrollHeight;
           })
           .catch((err) => console.error("Ошибка связи с сервером", err));
       }
 
-      setInterval(updateDisplay, 1000);
+      setInterval(updateDisplay, 800);
       updateDisplay();
     </script>
   </body>

@@ -1,8 +1,17 @@
-shop.db
+# Базы данных
+*.db
 
-# wrangler files
+# Окружение и кэш Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Переменные окружения
+.env*
+!.env.example
+
+# Cloudflare / Wrangler
 .wrangler
 .dev.vars*
 !.dev.vars.example
-.env*
-!.env.example
