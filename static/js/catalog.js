@@ -4,46 +4,6 @@ let activeCategory = "all";
 let activeSubcategory = "all";
 let selectedProductForModal = null;
 
-// Функция показа скелетона перед загрузкой
-function showSkeleton() {
-  const container = document.getElementById("catalog-container");
-  if (!container) return;
-
-  container.innerHTML = `
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      ${Array(6)
-        .fill(
-          `
-        <div class="bg-white rounded-xl p-2.5 border border-gray-100 animate-pulse space-y-2">
-          <div class="w-full h-28 bg-gray-200 rounded-lg"></div>
-          <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-          <div class="h-3 bg-gray-200 rounded w-1/2"></div>
-          <div class="h-7 bg-gray-200 rounded mt-2"></div>
-        </div>
-      `,
-        )
-        .join("")}
-    </div>
-  `;
-}
-
-// Обновленная функция загрузки
-async function loadProducts() {
-  showSkeleton(); // Показываем пульсирующие карточки сразу
-
-  try {
-    const response = await fetch("products.json");
-    if (!response.ok) throw new Error("Не удалось прочитать JSON");
-    productsData = await response.json();
-
-    renderCategories();
-    filterProducts();
-  } catch (error) {
-    document.getElementById("catalog-container").innerHTML =
-      `<p class="text-center text-red-500 py-8 text-sm">Ошибка загрузки: ${error.message}</p>`;
-  }
-}
-
 const CATALOG_STRUCTURE = {
   Алкоголь: ["Пиво и слабоалкогольные", "Крепкий алкоголь", "Закуски к пиву"],
   "Напитки, чай, кофе": ["Соки и газировка", "Вода и энергетики", "Чай и кофе"],
@@ -88,13 +48,69 @@ const CATALOG_STRUCTURE = {
   ],
 };
 
-// Функция-заглушка с котом для пустых категорий и поиска
+// Переключение режимов темы: system -> light -> dark
+function applyTheme(theme) {
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("dark", isDark);
+
+  const btn = document.getElementById("theme-toggle-btn");
+  if (btn) {
+    if (theme === "system") btn.innerText = "💻 Авто";
+    else if (theme === "light") btn.innerText = "☀️ Светлая";
+    else if (theme === "dark") btn.innerText = "🌙 Тёмная";
+  }
+}
+
+function cycleTheme() {
+  const current = localStorage.getItem("theme") || "system";
+  const next =
+    current === "system" ? "light" : current === "light" ? "dark" : "system";
+  localStorage.setItem("theme", next);
+  applyTheme(next);
+}
+
+// Отслеживание смены системной темы на лету
+window
+  .matchMedia("(prefers-color-scheme: dark)")
+  .addEventListener("change", () => {
+    if ((localStorage.getItem("theme") || "system") === "system") {
+      applyTheme("system");
+    }
+  });
+
+// Скелетон с поддержкой Dark Mode
+function showSkeleton() {
+  const container = document.getElementById("catalog-container");
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      ${Array(6)
+        .fill(
+          `
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-2.5 border border-gray-100 dark:border-gray-700/60 animate-pulse space-y-2">
+          <div class="w-full h-28 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+          <div class="h-7 bg-gray-200 dark:bg-gray-700 rounded mt-2"></div>
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+// Заглушка с котом
 function getEmptyStateHTML(
   title = "Раздел скоро заполнится",
   desc = "Завозим новые товары и наводим порядок на полках.",
 ) {
   return `
-    <div class="col-span-full my-4 bg-gray-50 border border-gray-200/80 rounded-2xl p-6 text-center relative overflow-hidden shadow-sm">
+    <div class="col-span-full my-4 bg-gray-50 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700 rounded-2xl p-6 text-center relative overflow-hidden shadow-sm">
       <style>
         @keyframes gentleFloat {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -109,7 +125,7 @@ function getEmptyStateHTML(
       </style>
       <div class="w-28 h-28 mx-auto mb-2 relative">
         <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full anim-cat-float">
-          <ellipse cx="100" cy="175" rx="35" ry="5" fill="#E2E8F0"/>
+          <ellipse cx="100" cy="175" rx="35" ry="5" fill="#334155"/>
           <path d="M135 140 C165 130, 160 90, 145 85" stroke="#475569" stroke-width="7" stroke-linecap="round" fill="none"/>
           <path d="M70 165 C65 120, 135 120, 130 165 Z" fill="#475569"/>
           <path d="M85 165 C82 135, 118 135, 115 165 Z" fill="#94A3B8"/>
@@ -135,9 +151,9 @@ function getEmptyStateHTML(
           <circle cx="125" cy="138" r="7" fill="#475569"/>
         </svg>
       </div>
-      <h3 class="text-sm font-bold text-gray-800 mb-1">${title}</h3>
-      <p class="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">${desc}</p>
-      <span class="inline-block mt-3 bg-gray-200/70 text-gray-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">В разработке</span>
+      <h3 class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-1">${title}</h3>
+      <p class="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">${desc}</p>
+      <span class="inline-block mt-3 bg-gray-200/70 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">В разработке</span>
     </div>
   `;
 }
@@ -147,12 +163,28 @@ function updateStoreStatus() {
   const statusEl = document.getElementById("store-status");
   if (hour >= 9 && hour < 21) {
     statusEl.className =
-      "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200";
+      "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800";
     statusEl.innerText = "🟢 Открыто";
   } else {
     statusEl.className =
-      "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200";
+      "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800";
     statusEl.innerText = "🔴 Закрыто";
+  }
+}
+
+async function loadProducts() {
+  showSkeleton();
+
+  try {
+    const response = await fetch("products.json");
+    if (!response.ok) throw new Error("Не удалось прочитать JSON");
+    productsData = await response.json();
+
+    renderCategories();
+    filterProducts();
+  } catch (error) {
+    document.getElementById("catalog-container").innerHTML =
+      `<p class="text-center text-red-500 py-8 text-sm">Ошибка загрузки: ${error.message}</p>`;
   }
 }
 
@@ -210,7 +242,7 @@ function renderCategories() {
       <button onclick="setCategory('${cat}')" class="px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap border transition-all ${
         cat === activeCategory
           ? "bg-green-600 text-white border-green-600 shadow-sm"
-          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+          : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
       }">
         ${cat === "all" ? "Все товары" : cat}
       </button>
@@ -238,8 +270,8 @@ function renderSubcategories() {
       (sub) => `
       <button onclick="setSubcategory('${sub}')" class="px-2.5 py-0.5 text-[11px] font-medium rounded-full whitespace-nowrap border transition-all ${
         sub === activeSubcategory
-          ? "bg-gray-800 text-white border-gray-800"
-          : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+          ? "bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200"
+          : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
       }">
         ${sub === "all" ? "Все подкатегории" : sub}
       </button>
@@ -296,13 +328,11 @@ function filterProducts() {
   }
 }
 
-// Функция отрисовки Варианта А: Горизонтальный свайп-билборд скидок
 function renderBillboard() {
   const saleProducts = productsData.filter(
     (p) => p.old_price && p.old_price > p.price,
   );
-
-  if (saleProducts.length === 0) return ""; // Если скидок нет — билборд не показывается
+  if (saleProducts.length === 0) return "";
 
   const slidesHtml = saleProducts
     .map((item) => {
@@ -310,14 +340,12 @@ function renderBillboard() {
         ((item.old_price - item.price) / item.old_price) * 100,
       );
       return `
-        <div onclick="openProductModal('${
-          item.barcode
-        }')" class="snap-center shrink-0 w-72 sm:w-80 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-3.5 text-white shadow-md relative overflow-hidden cursor-pointer active:scale-98 transition-transform">
+        <div onclick="openProductModal('${item.barcode}')" class="snap-center shrink-0 w-72 sm:w-80 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-3.5 text-white shadow-md relative overflow-hidden cursor-pointer active:scale-98 transition-transform">
           <span class="absolute top-2 right-2 bg-yellow-400 text-red-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase shadow">
             -${discountPercent}%
           </span>
           <div class="flex items-center gap-3">
-            <div class="w-20 h-20 bg-white/90 rounded-xl shrink-0 p-1 flex items-center justify-center">
+            <div class="w-20 h-20 bg-white dark:bg-gray-800 rounded-xl shrink-0 p-1 flex items-center justify-center">
               ${
                 item.image
                   ? `<img src="static/img/${item.image}" class="w-full h-full object-contain">`
@@ -326,16 +354,10 @@ function renderBillboard() {
             </div>
             <div class="flex-grow min-w-0">
               <span class="text-[9px] uppercase font-extrabold bg-black/20 px-1.5 py-0.5 rounded text-white/90">🔥 Товар дня</span>
-              <h4 class="font-bold text-xs sm:text-sm leading-tight truncate mt-1">${
-                item.name
-              }</h4>
+              <h4 class="font-bold text-xs sm:text-sm leading-tight truncate mt-1">${item.name}</h4>
               <div class="flex items-baseline gap-1.5 mt-1">
-                <span class="text-base font-black text-yellow-300">${
-                  item.price
-                } ₸</span>
-                <span class="text-xs line-through text-white/70">${
-                  item.old_price
-                } ₸</span>
+                <span class="text-base font-black text-yellow-300">${item.price} ₸</span>
+                <span class="text-xs line-through text-white/70">${item.old_price} ₸</span>
               </div>
             </div>
           </div>
@@ -347,10 +369,10 @@ function renderBillboard() {
   return `
     <section class="mb-6">
       <div class="flex justify-between items-center mb-2">
-        <h2 class="text-base font-bold text-gray-800 flex items-center gap-1">
+        <h2 class="text-base font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1">
           <span>🔥 Горячие скидки</span>
         </h2>
-        <span class="text-[11px] text-gray-400">Листай ➔</span>
+        <span class="text-[11px] text-gray-400 dark:text-gray-500">Листай ➔</span>
       </div>
       <div class="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
         ${slidesHtml}
@@ -359,7 +381,6 @@ function renderBillboard() {
   `;
 }
 
-// Рендер обычной карточки товара с поддержкой скидки
 function renderCardHTML(item) {
   const hasDiscount = item.old_price && item.old_price > item.price;
   const discountPercent = hasDiscount
@@ -367,15 +388,13 @@ function renderCardHTML(item) {
     : 0;
 
   return `
-    <article onclick="openProductModal('${
-      item.barcode
-    }')" class="bg-white rounded-xl shadow-sm p-2.5 flex flex-col justify-between hover:shadow-md transition-all border border-gray-100 h-full cursor-pointer relative group">
+    <article onclick="openProductModal('${item.barcode}')" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-2.5 flex flex-col justify-between hover:shadow-md transition-all border border-gray-100 dark:border-gray-700/60 h-full cursor-pointer relative group">
       <div>
         <div class="relative">
           ${
             item.image
-              ? `<img src="static/img/${item.image}" alt="${item.name}" class="w-full h-28 object-cover rounded-lg mb-2 bg-gray-50">`
-              : `<div class="w-full h-28 bg-gray-50 rounded-lg mb-2 flex items-center justify-center text-gray-300 text-xs border border-dashed border-gray-200">Нет фото</div>`
+              ? `<img src="static/img/${item.image}" alt="${item.name}" class="w-full h-28 object-cover rounded-lg mb-2 bg-gray-50 dark:bg-gray-900">`
+              : `<div class="w-full h-28 bg-gray-50 dark:bg-gray-900 rounded-lg mb-2 flex items-center justify-center text-gray-300 dark:text-gray-600 text-xs border border-dashed border-gray-200 dark:border-gray-700">Нет фото</div>`
           }
           ${
             hasDiscount
@@ -385,51 +404,30 @@ function renderCardHTML(item) {
         </div>
         
         <div class="flex flex-wrap gap-1 mb-1">
-          <span class="text-[9px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">${
-            item.category || "Прочее"
-          }</span>
-          ${
-            item.volume_weight
-              ? `<span class="text-[9px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">${item.volume_weight}</span>`
-              : ""
-          }
+          <span class="text-[9px] font-semibold bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">${item.category || "Прочее"}</span>
+          ${item.volume_weight ? `<span class="text-[9px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">${item.volume_weight}</span>` : ""}
         </div>
-        <h3 class="font-semibold text-xs sm:text-sm text-gray-800 leading-tight group-hover:text-green-600 transition-colors">${
-          item.name
-        }</h3>
+        <h3 class="font-semibold text-xs sm:text-sm text-gray-800 dark:text-gray-100 leading-tight group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">${item.name}</h3>
         
         <div class="mt-1 flex items-baseline gap-1">
-          <span class="text-green-600 font-bold text-sm">${item.price} ₸</span>
-          ${
-            hasDiscount
-              ? `<span class="text-[10px] line-through text-gray-400 font-semibold">${item.old_price} ₸</span>`
-              : ""
-          }
+          <span class="text-green-600 dark:text-green-400 font-bold text-sm">${item.price} ₸</span>
+          ${hasDiscount ? `<span class="text-[10px] line-through text-gray-400 dark:text-gray-500 font-semibold">${item.old_price} ₸</span>` : ""}
         </div>
       </div>
-      <div onclick="event.stopPropagation()" class="mt-2.5 flex items-center justify-between bg-gray-50 rounded-lg p-1 border border-gray-200">
-        <button onclick="addToCart('${
-          item.barcode
-        }', -1)" class="w-7 h-7 flex items-center justify-center text-gray-600 font-bold hover:bg-gray-200 rounded active:scale-90 transition-transform">-</button>
-        <span id="qty-${
-          item.barcode
-        }" class="text-xs font-bold text-gray-800 w-6 text-center">${
-          cart[item.barcode]?.qty || 0
-        }</span>
-        <button onclick="addToCart('${
-          item.barcode
-        }', 1)" class="w-7 h-7 flex items-center justify-center text-green-600 font-bold hover:bg-green-100 rounded active:scale-90 transition-transform">+</button>
+      <div onclick="event.stopPropagation()" class="mt-2.5 flex items-center justify-between bg-gray-50 dark:bg-gray-900/60 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
+        <button onclick="addToCart('${item.barcode}', -1)" class="w-7 h-7 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-700 rounded active:scale-90 transition-transform">-</button>
+        <span id="qty-${item.barcode}" class="text-xs font-bold text-gray-800 dark:text-gray-200 w-6 text-center">${cart[item.barcode]?.qty || 0}</span>
+        <button onclick="addToCart('${item.barcode}', 1)" class="w-7 h-7 flex items-center justify-center text-green-600 dark:text-green-400 font-bold hover:bg-green-100 dark:hover:bg-green-900/50 rounded active:scale-90 transition-transform">+</button>
       </div>
     </article>
   `;
 }
 
-// Вставляем билборд перед PlayMarket секциями
 function renderPlayMarketView() {
   const container = document.getElementById("catalog-container");
   const categories = Object.keys(CATALOG_STRUCTURE);
 
-  let html = renderBillboard(); // Билборд наверху!
+  let html = renderBillboard();
 
   categories.forEach((cat) => {
     const itemsInCat = productsData.filter(
@@ -440,12 +438,9 @@ function renderPlayMarketView() {
       html += `
         <section class="mb-6">
           <div class="flex justify-between items-center mb-2">
-            <h2 class="text-base font-bold text-gray-800"><span>${cat}</span></h2>
+            <h2 class="text-base font-bold text-gray-800 dark:text-gray-200"><span>${cat}</span></h2>
           </div>
-          ${getEmptyStateHTML(
-            `Категория «${cat}» наполняется`,
-            "Товары скоро появятся в продаже.",
-          )}
+          ${getEmptyStateHTML(`Категория «${cat}» наполняется`, "Товары скоро появятся в продаже.")}
         </section>
       `;
       return;
@@ -454,23 +449,14 @@ function renderPlayMarketView() {
     html += `
       <section class="mb-6">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-base font-bold text-gray-800 flex items-center gap-1.5">
+          <h2 class="text-base font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
             <span>${cat}</span>
-            <span class="text-xs font-normal text-gray-400">(${
-              itemsInCat.length
-            })</span>
+            <span class="text-xs font-normal text-gray-400 dark:text-gray-500">(${itemsInCat.length})</span>
           </h2>
-          <button onclick="setCategory('${cat}')" class="text-xs font-bold text-green-600 hover:underline">Все ➔</button>
+          <button onclick="setCategory('${cat}')" class="text-xs font-bold text-green-600 dark:text-green-400 hover:underline">Все ➔</button>
         </div>
         <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
-          ${itemsInCat
-            .map(
-              (item) =>
-                `<div class="w-36 sm:w-44 flex-shrink-0">${renderCardHTML(
-                  item,
-                )}</div>`,
-            )
-            .join("")}
+          ${itemsInCat.map((item) => `<div class="w-36 sm:w-44 flex-shrink-0">${renderCardHTML(item)}</div>`).join("")}
         </div>
       </section>
     `;
@@ -561,9 +547,9 @@ function updateModalCartControls() {
 
   const controls = document.getElementById("modalCartControls");
   controls.innerHTML = `
-    <button onclick="addToCart('${b}', -1); updateModalCartControls();" class="w-8 h-8 flex items-center justify-center text-gray-600 font-bold hover:bg-gray-100 rounded text-base active:scale-90 transition-transform">-</button>
-    <span class="text-base font-bold text-gray-800 w-8 text-center">${qty}</span>
-    <button onclick="addToCart('${b}', 1); updateModalCartControls();" class="w-8 h-8 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded text-base active:scale-90 transition-transform">+</button>
+    <button onclick="addToCart('${b}', -1); updateModalCartControls();" class="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-base active:scale-90 transition-transform">-</button>
+    <span class="text-base font-bold text-gray-800 dark:text-gray-100 w-8 text-center">${qty}</span>
+    <button onclick="addToCart('${b}', 1); updateModalCartControls();" class="w-8 h-8 flex items-center justify-center text-green-600 dark:text-green-400 font-bold hover:bg-green-50 dark:hover:bg-green-950 rounded text-base active:scale-90 transition-transform">+</button>
   `;
 }
 
@@ -627,6 +613,7 @@ function checkout() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  applyTheme(localStorage.getItem("theme") || "system");
   updateStoreStatus();
   loadProducts();
 });
