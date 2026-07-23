@@ -1,8 +1,9 @@
 #!/bin/bash
-cd /home/sakura/mama-shop
+# Переходим в папку, где лежит САМ скрипт, где бы она ни находилась
+cd "$(dirname "$0")"
 
 # Добавляем только статику для сайта
-git add products.json static/img/*
+git add products.json static/*
 
 # Сохраняем слепок
 git commit -m "Автообновление прайса и фото" || true
