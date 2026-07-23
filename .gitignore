@@ -6,3 +6,7 @@ shop.db
 !.dev.vars.example
 .env*
 !.env.example
+venv/
+*.db
+__pycache__/
+.env

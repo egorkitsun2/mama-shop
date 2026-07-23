@@ -5,7 +5,6 @@ import sqlite3
 import json
 from PIL import Image
 
-# Импорт rembg с фоллбеком, если библиотека еще не поставлена
 try:
     from rembg import remove
 
@@ -64,12 +63,49 @@ def export_json():
     with open("products.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-    # Авто-отправка изменений на GitHub
     run_git_push()
 
 
 def run_git_push():
-    subprocess.Popen(["bash", "/home/sakura/mama-shop/push_data.sh"])
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    script_path = os.path.join(base_dir, "push_data.sh")
+    subprocess.Popen(["bash", script_path])
+
+
+def get_product_by_barcode(barcode):
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT barcode, name, price, image, category, subcategory FROM products WHERE barcode=?",
+            (barcode,),
+        )
+        row = cur.fetchone()
+        if row:
+            return {
+                "barcode": row[0],
+                "name": row[1],
+                "price": row[2],
+                "image": row[3],
+                "category": row[4] or "Прочее",
+                "subcategory": row[5] or "",
+            }
+    return None
+
+
+def add_to_cart(product):
+    barcode = product["barcode"]
+    if barcode in current_cart:
+        current_cart[barcode]["qty"] += 1
+    else:
+        current_cart[barcode] = {
+            "barcode": barcode,
+            "name": product["name"],
+            "price": product["price"],
+            "image": product["image"],
+            "category": product["category"],
+            "subcategory": product["subcategory"],
+            "qty": 1,
+        }
 
 
 @app.route("/scanner")
@@ -83,42 +119,29 @@ def display():
 
 
 @app.route("/scan", methods=["POST"])
-def scan():
-    barcode = request.json.get("barcode")
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT name, price, image, category, subcategory FROM products WHERE barcode=?",
-            (barcode,),
-        )
-        prod = cur.fetchone()
+def scan_barcode():
+    data = request.get_json() or {}
+    barcode = data.get("barcode")
+    mode = data.get("mode", "sell")
 
-    if prod:
-        if barcode in current_cart:
-            current_cart[barcode]["qty"] += 1
-        else:
-            current_cart[barcode] = {
-                "barcode": barcode,
-                "name": prod[0],
-                "price": prod[1],
-                "image": prod[2],
-                "category": prod[3],
-                "subcategory": prod[4],
-                "qty": 1,
-            }
+    product = get_product_by_barcode(barcode)
+
+    if product:
+        if mode == "sell":
+            add_to_cart(product)
+
         return jsonify(
             {
                 "status": "found",
+                "name": product["name"],
+                "price": product["price"],
+                "category": product.get("category", ""),
+                "subcategory": product.get("subcategory", ""),
                 "barcode": barcode,
-                "name": prod[0],
-                "price": prod[1],
-                "image": prod[2],
-                "category": prod[3] or "Прочее",
-                "subcategory": prod[4] or "",
-                "qty": current_cart[barcode]["qty"],
             }
         )
-    return jsonify({"status": "new", "barcode": barcode})
+
+    return jsonify({"status": "not_found"})
 
 
 @app.route("/add", methods=["POST"])
@@ -130,7 +153,6 @@ def add():
     subcategory = request.form.get("subcategory", "")
     file = request.files.get("image")
 
-    # Достаем старое имя файла из БД, чтобы не затереть фото при редактировании цен
     filename = ""
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
@@ -140,10 +162,8 @@ def add():
             filename = old_row[0]
 
     if file and file.filename != "":
-        # Читаем фотку
         input_image = Image.open(file.stream)
 
-        # Если rembg установлен — вырезаем фон в прозрачный PNG
         if REMBG_AVAILABLE:
             try:
                 output_image = remove(input_image)
@@ -156,6 +176,9 @@ def add():
         filename = f"{barcode}.png"
         save_path = os.path.join(UPLOAD_FOLDER, filename)
         output_image.save(save_path, format="PNG")
+        # Ограничиваем максимальный размер картинки и оптимизируем PNG
+        output_image.thumbnail((800, 800))
+        output_image.save(save_path, format="PNG", optimize=True)
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
@@ -168,7 +191,6 @@ def add():
 
     export_json()
 
-    # Если товар был в чеке — обновляем его данные
     if barcode in current_cart:
         current_cart[barcode]["name"] = name
         current_cart[barcode]["price"] = price
@@ -179,7 +201,6 @@ def add():
     return jsonify({"status": "ok"})
 
 
-# Ручной пинок push_data.sh с кнопки на телефоне
 @app.route("/api/sync", methods=["POST"])
 def manual_sync():
     run_git_push()

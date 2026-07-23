@@ -12,20 +12,56 @@
       <h2 class="text-xl font-bold mb-4 text-center text-gray-800">
         Касса (Скан)
       </h2>
-      <div id="reader" class="w-full mb-4 overflow-hidden rounded"></div>
+
+      <!-- Панель режимов -->
+      <div
+        id="mode-bar"
+        class="mb-4 p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-center transition-colors"
+      >
+        <div
+          class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-2"
+        >
+          Режим:
+          <span id="mode-label" class="text-blue-600 font-extrabold"
+            >ПРОДАЖА</span
+          >
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            id="btn-mode-sell"
+            type="button"
+            onclick="setMode('sell')"
+            class="py-1.5 px-2 text-xs font-bold rounded bg-blue-600 text-white shadow-sm"
+          >
+            Продажа
+          </button>
+          <button
+            id="btn-mode-add"
+            type="button"
+            onclick="setMode('add')"
+            class="py-1.5 px-2 text-xs font-bold rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+          >
+            Добавка
+          </button>
+          <button
+            id="btn-mode-edit"
+            type="button"
+            onclick="setMode('edit')"
+            class="py-1.5 px-2 text-xs font-bold rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+          >
+            Редакт
+          </button>
+        </div>
+      </div>
+
+      <!-- Контейнер камеры с минимальной высотой -->
+      <div
+        id="reader"
+        class="w-full mb-4 overflow-hidden rounded min-h-[250px] bg-gray-900"
+      ></div>
 
       <div id="result" class="text-center font-bold text-lg text-blue-600 mb-2">
         Наведи камеру на штрихкод
-      </div>
-
-      <!-- Кнопка редактирования только отсканированного товара -->
-      <div id="edit-btn-container" class="hidden mb-4 text-center">
-        <button
-          onclick="openEditModalForCurrent()"
-          class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-1.5 px-4 rounded-lg text-sm shadow transition-colors"
-        >
-          ✏️ Изменить цену / товар
-        </button>
       </div>
 
       <button
@@ -172,6 +208,63 @@
       let currentBarcode = "";
       let lastScannedProduct = null;
       let selectedFile = null;
+      let currentMode = "sell";
+
+      const modeConfigs = {
+        sell: {
+          label: "ПРОДАЖА",
+          labelClass: "text-blue-600 font-extrabold",
+          barClass:
+            "mb-4 p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-center transition-colors",
+          btnId: "btn-mode-sell",
+          btnClass: "bg-blue-600 text-white",
+        },
+        add: {
+          label: "ДОБАВЛЕНИЕ",
+          labelClass: "text-amber-600 font-extrabold",
+          barClass:
+            "mb-4 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-center transition-colors",
+          btnId: "btn-mode-add",
+          btnClass: "bg-amber-600 text-white",
+        },
+        edit: {
+          label: "РЕДАКТИРОВАНИЕ",
+          labelClass: "text-purple-600 font-extrabold",
+          barClass:
+            "mb-4 p-2.5 bg-purple-50 border border-purple-200 rounded-lg text-center transition-colors",
+          btnId: "btn-mode-edit",
+          btnClass: "bg-purple-600 text-white",
+        },
+      };
+
+      function setMode(mode) {
+        if (!modeConfigs[mode]) return;
+        currentMode = mode;
+
+        const cfg = modeConfigs[mode];
+        document.getElementById("mode-label").innerText = cfg.label;
+        document.getElementById("mode-label").className = cfg.labelClass;
+        document.getElementById("mode-bar").className = cfg.barClass;
+
+        ["sell", "add", "edit"].forEach((m) => {
+          const btn = document.getElementById(modeConfigs[m].btnId);
+          btn.className =
+            m === mode
+              ? `py-1.5 px-2 text-xs font-bold rounded shadow-sm ${cfg.btnClass}`
+              : "py-1.5 px-2 text-xs font-bold rounded bg-gray-200 text-gray-700 hover:bg-gray-300";
+        });
+
+        document.getElementById("result").innerText =
+          "Наведи камеру на штрихкод";
+        html5QrcodeScanner
+          .clear()
+          .then(() => {
+            startScanner();
+          })
+          .catch(() => {
+            startScanner();
+          });
+      }
 
       const CATALOG_STRUCTURE = {
         Алкоголь: [
@@ -265,7 +358,6 @@
 
       function startScanner() {
         document.getElementById("rescan").classList.add("hidden");
-        document.getElementById("edit-btn-container").classList.add("hidden");
         document.getElementById("result").innerText =
           "Наведи камеру на штрихкод";
         html5QrcodeScanner.render(onScanSuccess);
@@ -273,27 +365,52 @@
 
       function onScanSuccess(decodedText) {
         html5QrcodeScanner.clear();
+        currentBarcode = decodedText;
+
         fetch("/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ barcode: decodedText }),
+          body: JSON.stringify({ barcode: decodedText, mode: currentMode }),
         })
           .then((res) => res.json())
           .then((data) => {
-            currentBarcode = decodedText;
-            if (data.status === "found") {
-              lastScannedProduct = data;
-              document.getElementById("result").innerHTML =
-                `<span class="text-green-600">В чеке: ${data.name} (${data.price} ₸)</span>`;
-              document
-                .getElementById("edit-btn-container")
-                .classList.remove("hidden");
+            if (currentMode === "sell") {
+              if (data.status === "found") {
+                lastScannedProduct = data;
+                document.getElementById("result").innerHTML =
+                  `<span class="text-green-600">В чеке: ${data.name} (${data.price} ₸)</span>`;
+                updateScannerCartUI();
+              } else {
+                lastScannedProduct = null;
+                document.getElementById("result").innerHTML =
+                  `<span class="text-red-500 font-bold">❌ Товар не найден в базе!</span>`;
+              }
               document.getElementById("rescan").classList.remove("hidden");
-              updateScannerCartUI();
-            } else {
-              lastScannedProduct = null;
-              openModalForNew(decodedText);
+            } else if (currentMode === "add") {
+              if (data.status === "found") {
+                document.getElementById("result").innerHTML =
+                  `<span class="text-amber-600 font-bold">⚠️ Уже существует: ${data.name}</span>`;
+                document.getElementById("rescan").classList.remove("hidden");
+              } else {
+                lastScannedProduct = null;
+                openModalForNew(decodedText);
+              }
+            } else if (currentMode === "edit") {
+              if (data.status === "found") {
+                lastScannedProduct = data;
+                openEditModalForCurrent();
+              } else {
+                lastScannedProduct = null;
+                document.getElementById("result").innerHTML =
+                  `<span class="text-red-500 font-bold">❌ Нечего редактировать: товар не найден</span>`;
+                document.getElementById("rescan").classList.remove("hidden");
+              }
             }
+          })
+          .catch(() => {
+            document.getElementById("result").innerHTML =
+              `<span class="text-red-500">Ошибка сети или сервера</span>`;
+            document.getElementById("rescan").classList.remove("hidden");
           });
       }
 
@@ -370,7 +487,6 @@
         fetch("/api/cart/clear", { method: "POST" }).then(() => {
           document.getElementById("result").innerHTML =
             `<span class="text-red-500">Чек сброшен</span>`;
-          document.getElementById("edit-btn-container").classList.add("hidden");
           updateScannerCartUI();
           if (!document.getElementById("rescan").classList.contains("hidden"))
             startScanner();
