@@ -18,56 +18,59 @@
   <body
     class="bg-gray-100 font-sans min-h-screen flex flex-col justify-between"
   >
-    <!-- Липкая шапка -->
-    <header
-      class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-gray-200"
-    >
-      <div class="max-w-4xl mx-auto p-3 sm:p-4 space-y-2.5">
-        <div class="flex justify-between items-center">
-          <div>
-            <h1
-              class="text-lg sm:text-xl font-bold text-green-600 leading-none"
-            >
-              Продукты у Валентины
-            </h1>
-            <p class="text-[11px] text-gray-400 mt-0.5">с. Иртышск</p>
+    <!-- Верхняя часть (Шапка + Каталог) -->
+    <div>
+      <!-- Липкая шапка -->
+      <header
+        class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-gray-200"
+      >
+        <div class="max-w-4xl mx-auto p-3 sm:p-4 space-y-2.5">
+          <div class="flex justify-between items-center">
+            <div>
+              <h1
+                class="text-lg sm:text-xl font-bold text-green-600 leading-none"
+              >
+                Продукты у Валентины
+              </h1>
+              <p class="text-[11px] text-gray-400 mt-0.5">с. Иртышск</p>
+            </div>
+            <div class="text-right">
+              <span
+                id="store-status"
+                class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+              >
+                ⏳ Проверка...
+              </span>
+              <p class="text-[10px] text-gray-400 mt-0.5">9:00 — 21:00</p>
+            </div>
           </div>
-          <div class="text-right">
-            <span
-              id="store-status"
-              class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
-            >
-              ⏳ Проверка...
-            </span>
-            <p class="text-[10px] text-gray-400 mt-0.5">9:00 — 21:00</p>
-          </div>
+
+          <input
+            type="search"
+            id="search-input"
+            placeholder="🔍 Поиск (например: пельмени, молоко)..."
+            oninput="filterProducts()"
+            class="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50/50"
+          />
+
+          <nav
+            id="categories-nav"
+            class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5"
+            aria-label="Категории"
+          ></nav>
+          <nav
+            id="subcategories-nav"
+            class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5 hidden"
+            aria-label="Подкатегории"
+          ></nav>
         </div>
+      </header>
 
-        <input
-          type="search"
-          id="search-input"
-          placeholder="🔍 Поиск (например: пельмени, молоко)..."
-          oninput="filterProducts()"
-          class="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50/50"
-        />
-
-        <nav
-          id="categories-nav"
-          class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5"
-          aria-label="Категории"
-        ></nav>
-        <nav
-          id="subcategories-nav"
-          class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5 hidden"
-          aria-label="Подкатегории"
-        ></nav>
-      </div>
-    </header>
-
-    <!-- Основной контент -->
-    <main class="max-w-4xl mx-auto p-3 sm:p-4 w-full">
-      <div id="catalog-container"></div>
-    </main>
+      <!-- Основной контент (pb-24 дает запас снизу под плавающую корзину) -->
+      <main class="max-w-4xl mx-auto p-3 sm:p-4 w-full pb-24">
+        <div id="catalog-container"></div>
+      </main>
+    </div>
 
     <!-- WB-Модалка карточки товара -->
     <div
@@ -159,10 +162,8 @@
       </div>
     </div>
 
-    <!-- Подвал -->
-    <footer
-      class="g-gray-900 text-gray-300 mt-12 border-t border-gray-800 pb-28"
-    >
+    <!-- Адекватный подвал (bg-gray-900 вернкулся, py-8 дает аккуратную высоту) -->
+    <footer class="bg-gray-900 text-gray-300 border-t border-gray-800 py-8">
       <div class="max-w-4xl mx-auto p-6 sm:p-8">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
           <div>
@@ -193,8 +194,9 @@
                   href="https://wa.me/77774614003"
                   target="_blank"
                   class="text-green-400 hover:underline font-semibold"
-                  >+7 (777) 461-40-03</a
                 >
+                  +7 (777) 461-40-03
+                </a>
               </li>
               <li>💳 Kaspi/Halyk перевод / Наличный расчет</li>
             </ul>
@@ -223,7 +225,7 @@
       </div>
     </footer>
 
-    <!-- Подключаем выделенный JS -->
+    <!-- Подключаем скрипт -->
     <script src="static/js/catalog.js"></script>
   </body>
 </html>

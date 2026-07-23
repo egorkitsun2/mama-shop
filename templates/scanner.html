@@ -476,27 +476,12 @@
       function manualInputCode() {
         const code = prompt("Введи штрихкод товара:");
         if (code && code.trim()) {
-          onScanSuccess(code.trim());
+          processBarcode(code.trim());
         }
       }
 
-      function openModalForNoBarcode() {
-        currentMode = "add";
-        setMode("add");
-        currentBarcode = "";
-        openModalForNew("");
-      }
-
-      function onScanSuccess(decodedText) {
-        // Безопасный останов сканера без вылета ошибок
-        if (html5QrcodeScanner) {
-          try {
-            html5QrcodeScanner.clear().catch(() => {});
-          } catch (e) {}
-        }
-
-        currentBarcode = decodedText;
-
+      function processBarcode(barcode) {
+        currentBarcode = barcode;
         const qtyInput = document.getElementById("scan-qty");
         const qtyVal = parseInt(qtyInput ? qtyInput.value : "1") || 1;
 
@@ -504,7 +489,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            barcode: decodedText,
+            barcode: barcode,
             mode: currentMode,
             qty: qtyVal,
           }),
@@ -532,7 +517,7 @@
                 document.getElementById("rescan").classList.remove("hidden");
               } else {
                 lastScannedProduct = null;
-                openModalForNew(decodedText);
+                openModalForNew(barcode);
               }
             } else if (currentMode === "edit") {
               if (data.status === "found") {
@@ -552,6 +537,80 @@
             document.getElementById("rescan").classList.remove("hidden");
           });
       }
+
+      function openModalForNoBarcode() {
+        currentMode = "add";
+        setMode("add");
+        currentBarcode = "";
+        openModalForNew("");
+      }
+
+      function onScanSuccess(decodedText) {
+        if (html5QrcodeScanner) {
+          try {
+            html5QrcodeScanner.clear().catch(() => {});
+          } catch (e) {}
+        }
+        processBarcode(decodedText);
+      }
+
+      currentBarcode = decodedText;
+
+      const qtyInput = document.getElementById("scan-qty");
+      const qtyVal = parseInt(qtyInput ? qtyInput.value : "1") || 1;
+
+      fetch("/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          barcode: decodedText,
+          mode: currentMode,
+          qty: qtyVal,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (currentMode === "sell") {
+            if (data.status === "found") {
+              lastScannedProduct = data;
+              const totalAddedPrice = data.price * qtyVal;
+              document.getElementById("result").innerHTML =
+                `<span class="text-green-600">В чеке: ${data.name} × ${qtyVal} (${totalAddedPrice} ₸)</span>`;
+              updateScannerCartUI();
+              if (qtyInput) qtyInput.value = 1;
+            } else {
+              lastScannedProduct = null;
+              document.getElementById("result").innerHTML =
+                `<span class="text-red-500 font-bold">❌ Товар не найден в базе!</span>`;
+            }
+            document.getElementById("rescan").classList.remove("hidden");
+          } else if (currentMode === "add") {
+            if (data.status === "found") {
+              document.getElementById("result").innerHTML =
+                `<span class="text-amber-600 font-bold">⚠️ Уже существует: ${data.name}</span>`;
+              document.getElementById("rescan").classList.remove("hidden");
+            } else {
+              lastScannedProduct = null;
+              openModalForNew(decodedText);
+            }
+          } else if (currentMode === "edit") {
+            if (data.status === "found") {
+              lastScannedProduct = data;
+              openEditModalForCurrent();
+            } else {
+              lastScannedProduct = null;
+              document.getElementById("result").innerHTML =
+                `<span class="text-red-500 font-bold">❌ Нечего редактировать: товар не найден</span>`;
+              document.getElementById("rescan").classList.remove("hidden");
+            }
+          }
+        })
+        .catch(() => {
+          document.getElementById("result").innerHTML =
+            `<span class="text-red-500">Ошибка сети или сервера</span>`;
+          document.getElementById("rescan").classList.remove("hidden");
+        });
+
       function openModalForNew(barcode) {
         document.getElementById("modalTitle").innerText = "Новый товар";
         document.getElementById("newBarcodeLabel").innerText = barcode
