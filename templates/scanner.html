@@ -162,11 +162,18 @@
           placeholder="Название товара"
           class="w-full border p-2 mb-3 rounded text-base"
         />
+        <!-- В модалку newProductModal добавляем поле старой цены под основной ценой -->
         <input
           type="number"
           id="newPrice"
           placeholder="Цена (₸)"
-          class="w-full border p-2 mb-3 rounded text-base"
+          class="w-full border p-2 mb-2 rounded text-base"
+        />
+        <input
+          type="number"
+          id="newOldPrice"
+          placeholder="Старая цена / Без скидки (необязательно)"
+          class="w-full border p-2 mb-3 rounded text-base bg-gray-50/50"
         />
         <input
           type="text"
@@ -550,6 +557,7 @@
         document.getElementById("newVolumeWeight").value = "";
         document.getElementById("newCategory").value = "";
         document.getElementById("newSubcategory").value = "";
+        document.getElementById("newOldPrice").value = "";
 
         selectedFiles = [];
         updatePhotoPreview();
@@ -572,6 +580,8 @@
         updateSubcategories();
         document.getElementById("newSubcategory").value =
           lastScannedProduct.subcategory || "";
+        document.getElementById("newOldPrice").value =
+          lastScannedProduct.old_price || "";
 
         selectedFiles = [];
         const existingCount =
@@ -662,6 +672,8 @@
           document.getElementById("newCategory").value || "Прочее";
         const subcategory =
           document.getElementById("newSubcategory").value || "";
+        const oldPrice = document.getElementById("newOldPrice").value;
+        formData.append("old_price", oldPrice);
 
         if (!name || !price) {
           alert("Заполни название и цену!");

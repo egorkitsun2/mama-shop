@@ -103,13 +103,26 @@ def init_db():
                 conn.execute(
                     f"ALTER TABLE products ADD COLUMN {col} TEXT {default_val}"
                 )
+        # 1. В init_db() добавляем проверку колонки old_price:
+        for col, default_val in [
+            ("category", "DEFAULT 'Прочее'"),
+            ("subcategory", "DEFAULT ''"),
+            ("volume_weight", "DEFAULT ''"),
+            ("images", "DEFAULT '[]'"),
+            ("old_price", "DEFAULT 0"),  # <-- Добавили
+        ]:
+            if col not in columns:
+                conn.execute(
+                    f"ALTER TABLE products ADD COLUMN {col} TEXT {default_val}"
+                )
 
 
+# 2. В export_json() достаем old_price:
 def export_json():
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT barcode, name, price, image, category, subcategory, volume_weight, images FROM products"
+            "SELECT barcode, name, price, image, category, subcategory, volume_weight, images, old_price FROM products"
         )
         data = []
         for r in cur.fetchall():
@@ -118,7 +131,6 @@ def export_json():
             except Exception:
                 images_list = []
 
-            # Если массив images пуст, но есть старая картинка image
             if not images_list and r[3]:
                 images_list = [r[3]]
 
@@ -132,6 +144,7 @@ def export_json():
                     "subcategory": r[5] or "",
                     "volume_weight": r[6] or "",
                     "images": images_list,
+                    "old_price": r[8] or 0,  # <-- Добавили
                 }
             )
 
@@ -259,6 +272,11 @@ def add():
         price = float(raw_price)
     except ValueError:
         return jsonify({"status": "error", "message": "Некорректная цена!"}), 400
+    raw_old_price = request.form.get("old_price", "0").replace(",", ".").strip()
+    try:
+        old_price = float(raw_old_price) if raw_old_price else 0
+    except ValueError:
+        old_price = 0
 
     category = request.form.get("category", "Прочее")
     subcategory = request.form.get("subcategory", "")
@@ -310,8 +328,8 @@ def add():
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
-            INSERT OR REPLACE INTO products (barcode, name, price, image, category, subcategory, volume_weight, images) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO products (barcode, name, price, image, category, subcategory, volume_weight, images,old_price) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 barcode,
@@ -322,6 +340,7 @@ def add():
                 subcategory,
                 volume_weight,
                 images_json,
+                old_price,
             ),
         )
 
@@ -334,6 +353,7 @@ def add():
         current_cart[barcode]["category"] = category
         current_cart[barcode]["subcategory"] = subcategory
         current_cart[barcode]["volume_weight"] = volume_weight
+        current_cart[barcode]["old_price"] = old_price
 
     return jsonify({"status": "ok", "barcode": barcode})
 

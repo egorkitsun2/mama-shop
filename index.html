@@ -37,7 +37,7 @@
             >
               ⏳ Проверка...
             </span>
-            <p class="text-[10px] text-gray-400 mt-0.5">8:00 — 21:00</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">9:00 — 21:00</p>
           </div>
         </div>
 
@@ -62,11 +62,9 @@
       </div>
     </header>
 
-    <!-- Основной контент (Play Market лента или сетка) -->
+    <!-- Основной контент -->
     <main class="max-w-4xl mx-auto p-3 sm:p-4 w-full">
-      <div id="catalog-container">
-        <!-- Заполняется динамически -->
-      </div>
+      <div id="catalog-container"></div>
     </main>
 
     <!-- WB-Модалка карточки товара -->
@@ -75,7 +73,7 @@
       class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 transition-opacity"
     >
       <div
-        class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in slide-in-from-bottom duration-200"
+        class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl relative"
       >
         <button
           onclick="closeProductModal()"
@@ -84,7 +82,6 @@
           ✕
         </button>
 
-        <!-- Главное фото -->
         <div
           class="w-full h-60 bg-gray-50 rounded-xl mb-3 flex items-center justify-center overflow-hidden border border-gray-100 relative"
         >
@@ -102,13 +99,6 @@
           </div>
         </div>
 
-        <!-- Галерея миниатюр (ракурсы) -->
-        <div
-          id="modalThumbnails"
-          class="flex gap-2 overflow-x-auto no-scrollbar mb-4 hidden"
-        ></div>
-
-        <!-- Теги и фасовка -->
         <div class="flex flex-wrap gap-1.5 mb-2">
           <span
             id="modalCat"
@@ -130,7 +120,6 @@
         ></h3>
         <p id="modalBarcode" class="text-xs font-mono text-gray-400 mb-4"></p>
 
-        <!-- Цена и управление корзиной -->
         <div
           class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200/80"
         >
@@ -143,14 +132,12 @@
           <div
             id="modalCartControls"
             class="flex items-center gap-3 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm"
-          >
-            <!-- Диспетчер управления прямо из модалки -->
-          </div>
+          ></div>
         </div>
       </div>
     </div>
 
-    <!-- Выплывающая корзина -->
+    <!-- Корзина -->
     <div
       id="cart-bar"
       class="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.15)] p-4 transform translate-y-full transition-transform duration-300 z-40 border-t"
@@ -170,518 +157,69 @@
       </div>
     </div>
 
-    <script>
-      let cart = {};
-      let productsData = [];
-      let activeCategory = "all";
-      let activeSubcategory = "all";
-      let selectedProductForModal = null;
-
-      const CATALOG_STRUCTURE = {
-        Алкоголь: [
-          "Пиво и слабоалкогольные",
-          "Крепкий алкоголь",
-          "Закуски к пиву",
-        ],
-        "Напитки, чай, кофе": [
-          "Соки и газировка",
-          "Вода и энергетики",
-          "Чай и кофе",
-        ],
-        "Молочка и яйца": [
-          "Молоко",
-          "Кефир и ряженка",
-          "Йогурты и сметана",
-          "Сыр",
-          "Яйца",
-        ],
-        "Мясо, колбасы, консервы": [
-          "Колбасы и сосиски",
-          "Мясная продукция",
-          "Консервы",
-          "Овощи",
-        ],
-        "Заморозка и полуфабрикаты": [
-          "Пельмени и манты",
-          "Вареники",
-          "Котлеты и голубцы",
-          "Мороженое",
-        ],
-        "Крупы, мука, масла, специи": [
-          "Крупы",
-          "Мука",
-          "Макаронные изделия",
-          "Растительные масла",
-          "Приправы и специи",
-          "Сода, соль, уксус",
-        ],
-        "Сладости и снеки": [
-          "Шоколад и конфеты",
-          "Жвачки",
-          "Чипсы, сухарики, попкорн",
-          "Печенье и выпечка",
-        ],
-        Хлеб: ["Хлебобулочные изделия"],
-        "Бытовая химия и гигиена": [
-          "Шампуни и дезодоранты",
-          "Мыло и уход за собой",
-          "Стиральные порошки и моющие",
-          "Хозяйственные мелочи",
-        ],
-      };
-
-      function updateStoreStatus() {
-        const hour = new Date().getHours();
-        const statusEl = document.getElementById("store-status");
-        if (hour >= 8 && hour < 21) {
-          statusEl.className =
-            "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200";
-          statusEl.innerText = "🟢 Открыто";
-        } else {
-          statusEl.className =
-            "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200";
-          statusEl.innerText = "🔴 Закрыто";
-        }
-      }
-
-      async function loadProducts() {
-        try {
-          const response = await fetch("products.json");
-          if (!response.ok) throw new Error("Не удалось прочитать JSON");
-          productsData = await response.json();
-
-          renderCategories();
-          filterProducts();
-        } catch (error) {
-          document.getElementById("catalog-container").innerHTML =
-            `<p class="text-center text-red-500 py-8 text-sm">Ошибка загрузки: ${error.message}</p>`;
-        }
-      }
-
-      function translit(str) {
-        const ru = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
-        const en = [
-          "a",
-          "b",
-          "v",
-          "g",
-          "d",
-          "e",
-          "yo",
-          "zh",
-          "z",
-          "i",
-          "y",
-          "k",
-          "l",
-          "m",
-          "n",
-          "o",
-          "p",
-          "r",
-          "s",
-          "t",
-          "u",
-          "f",
-          "h",
-          "ts",
-          "ch",
-          "sh",
-          "shch",
-          "",
-          "y",
-          "",
-          "e",
-          "yu",
-          "ya",
-        ];
-        let result = str.toLowerCase();
-        for (let i = 0; i < ru.length; i++) {
-          result = result.split(ru[i]).join(en[i]);
-        }
-        return result;
-      }
-
-      function renderCategories() {
-        const categoriesNav = document.getElementById("categories-nav");
-        const availableCategories = ["all", ...Object.keys(CATALOG_STRUCTURE)];
-
-        categoriesNav.innerHTML = availableCategories
-          .map(
-            (cat) => `
-            <button onclick="setCategory('${cat}')" class="px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap border transition-all ${
-              cat === activeCategory
-                ? "bg-green-600 text-white border-green-600 shadow-sm"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }">
-              ${cat === "all" ? "Все товары" : cat}
-            </button>
-          `,
-          )
-          .join("");
-
-        renderSubcategories();
-      }
-
-      function renderSubcategories() {
-        const subNav = document.getElementById("subcategories-nav");
-        if (activeCategory === "all" || !CATALOG_STRUCTURE[activeCategory]) {
-          subNav.classList.add("hidden");
-          activeSubcategory = "all";
-          return;
-        }
-
-        const subcats = CATALOG_STRUCTURE[activeCategory];
-        subNav.classList.remove("hidden");
-        const allSubcats = ["all", ...subcats];
-
-        subNav.innerHTML = allSubcats
-          .map(
-            (sub) => `
-            <button onclick="setSubcategory('${sub}')" class="px-2.5 py-0.5 text-[11px] font-medium rounded-full whitespace-nowrap border transition-all ${
-              sub === activeSubcategory
-                ? "bg-gray-800 text-white border-gray-800"
-                : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
-            }">
-              ${sub === "all" ? "Все подкатегории" : sub}
-            </button>
-          `,
-          )
-          .join("");
-      }
-
-      function setCategory(cat) {
-        activeCategory = cat;
-        activeSubcategory = "all";
-        renderCategories();
-        filterProducts();
-      }
-
-      function setSubcategory(sub) {
-        activeSubcategory = sub;
-        renderSubcategories();
-        filterProducts();
-      }
-
-      function filterProducts() {
-        const rawQuery = document
-          .getElementById("search-input")
-          .value.toLowerCase()
-          .trim();
-        const queryTranslit = translit(rawQuery);
-
-        const filtered = productsData.filter((item) => {
-          const catName = item.category || "Прочее";
-          const subName = item.subcategory || "";
-
-          const matchesCat =
-            activeCategory === "all" || catName === activeCategory;
-          const matchesSubcat =
-            activeSubcategory === "all" || subName === activeSubcategory;
-
-          const nameLower = item.name.toLowerCase();
-          const nameTranslit = translit(nameLower);
-
-          const matchesSearch =
-            !rawQuery ||
-            nameLower.includes(rawQuery) ||
-            nameTranslit.includes(rawQuery) ||
-            nameLower.includes(queryTranslit) ||
-            item.barcode.includes(rawQuery);
-
-          return matchesCat && matchesSubcat && matchesSearch;
-        });
-
-        // Если режим "Все" и поиска нет — рисуем Play Market ленту
-        if (activeCategory === "all" && !rawQuery) {
-          renderPlayMarketView();
-        } else {
-          renderGridView(filtered);
-        }
-      }
-
-      function renderCardHTML(item) {
-        return `
-          <article onclick="openProductModal('${item.barcode}')" class="bg-white rounded-xl shadow-sm p-2.5 flex flex-col justify-between hover:shadow-md transition-all border border-gray-100 h-full cursor-pointer relative group">
-            <div>
-              ${
-                item.image
-                  ? `<img src="static/img/${item.image}" alt="${item.name}" class="w-full h-28 object-cover rounded-lg mb-2 bg-gray-50">`
-                  : `<div class="w-full h-28 bg-gray-50 rounded-lg mb-2 flex items-center justify-center text-gray-300 text-xs border border-dashed border-gray-200">Нет фото</div>`
-              }
-              <div class="flex flex-wrap gap-1 mb-1">
-                <span class="text-[9px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">${item.category || "Прочее"}</span>
-                ${item.volume_weight ? `<span class="text-[9px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">${item.volume_weight}</span>` : ""}
-              </div>
-              <h3 class="font-semibold text-xs sm:text-sm text-gray-800 leading-tight group-hover:text-green-600 transition-colors">${item.name}</h3>
-              <p class="text-green-600 font-bold mt-1 text-sm">${item.price} ₸</p>
-            </div>
-            <div onclick="event.stopPropagation()" class="mt-2.5 flex items-center justify-between bg-gray-50 rounded-lg p-1 border border-gray-200">
-              <button onclick="addToCart('${item.barcode}', -1)" class="w-7 h-7 flex items-center justify-center text-gray-600 font-bold hover:bg-gray-200 rounded active:scale-90 transition-transform">-</button>
-              <span id="qty-${item.barcode}" class="text-xs font-bold text-gray-800 w-6 text-center">${cart[item.barcode]?.qty || 0}</span>
-              <button onclick="addToCart('${item.barcode}', 1)" class="w-7 h-7 flex items-center justify-center text-green-600 font-bold hover:bg-green-100 rounded active:scale-90 transition-transform">+</button>
-            </div>
-          </article>
-        `;
-      }
-
-      function renderPlayMarketView() {
-        const container = document.getElementById("catalog-container");
-        const categories = Object.keys(CATALOG_STRUCTURE);
-
-        let html = "";
-        categories.forEach((cat) => {
-          const itemsInCat = productsData.filter(
-            (p) => (p.category || "Прочее") === cat,
-          );
-          if (itemsInCat.length === 0) return;
-
-          html += `
-            <section class="mb-6">
-              <div class="flex justify-between items-center mb-2">
-                <h2 class="text-base font-bold text-gray-800 flex items-center gap-1.5">
-                  <span>${cat}</span>
-                  <span class="text-xs font-normal text-gray-400">(${itemsInCat.length})</span>
-                </h2>
-                <button onclick="setCategory('${cat}')" class="text-xs font-bold text-green-600 hover:underline">Все ➔</button>
-              </div>
-              <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
-                ${itemsInCat.map((item) => `<div class="w-36 sm:w-44 flex-shrink-0">${renderCardHTML(item)}</div>`).join("")}
-              </div>
-            </section>
-          `;
-        });
-
-        container.innerHTML =
-          html ||
-          `<p class="text-center text-gray-400 py-12 text-sm">Товары не добавлены</p>`;
-      }
-
-      function renderGridView(items) {
-        const container = document.getElementById("catalog-container");
-        if (items.length === 0) {
-          container.innerHTML = `<p class="text-center text-gray-400 py-12 text-sm">Ничего не найдено 🤷‍♂️</p>`;
-          return;
-        }
-
-        container.innerHTML = `
-          <ul class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            ${items.map((item) => `<li>${renderCardHTML(item)}</li>`).join("")}
-          </ul>
-        `;
-      }
-
-      // Логика WB-Модалки
-      function openProductModal(barcode) {
-        const product = productsData.find((p) => p.barcode === barcode);
-        if (!product) return;
-
-        selectedProductForModal = product;
-
-        document.getElementById("modalName").innerText = product.name;
-        document.getElementById("modalPrice").innerText = `${product.price} ₸`;
-        document.getElementById("modalBarcode").innerText =
-          `Штрихкод: ${product.barcode}`;
-        document.getElementById("modalCat").innerText =
-          product.category || "Прочее";
-
-        const subcatEl = document.getElementById("modalSubcat");
-        if (product.subcategory) {
-          subcatEl.innerText = product.subcategory;
-          subcatEl.classList.remove("hidden");
-        } else {
-          subcatEl.classList.add("hidden");
-        }
-
-        const volEl = document.getElementById("modalVolume");
-        if (product.volume_weight) {
-          volEl.innerText = product.volume_weight;
-          volEl.classList.remove("hidden");
-        } else {
-          volEl.classList.add("hidden");
-        }
-
-        const mainImg = document.getElementById("modalMainImg");
-        const noImg = document.getElementById("modalNoImg");
-
-        // Поддержка массива картинок (готовность к шагу 2) или одной строки
-        const imagesList = Array.isArray(product.images)
-          ? product.images
-          : product.image
-            ? [product.image]
-            : [];
-
-        if (imagesList.length > 0) {
-          mainImg.src = `static/img/${imagesList[0]}`;
-          mainImg.classList.remove("hidden");
-          noImg.classList.add("hidden");
-        } else {
-          mainImg.classList.add("hidden");
-          noImg.classList.remove("hidden");
-        }
-
-        updateModalCartControls();
-        document
-          .getElementById("productDetailModal")
-          .classList.remove("hidden");
-      }
-
-      function closeProductModal() {
-        document.getElementById("productDetailModal").classList.add("hidden");
-        selectedProductForModal = null;
-      }
-
-      function updateModalCartControls() {
-        if (!selectedProductForModal) return;
-        const b = selectedProductForModal.barcode;
-        const qty = cart[b]?.qty || 0;
-
-        const controls = document.getElementById("modalCartControls");
-        controls.innerHTML = `
-          <button onclick="addToCart('${b}', -1); updateModalCartControls();" class="w-8 h-8 flex items-center justify-center text-gray-600 font-bold hover:bg-gray-100 rounded text-base active:scale-90 transition-transform">-</button>
-          <span class="text-base font-bold text-gray-800 w-8 text-center">${qty}</span>
-          <button onclick="addToCart('${b}', 1); updateModalCartControls();" class="w-8 h-8 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded text-base active:scale-90 transition-transform">+</button>
-        `;
-      }
-
-      function addToCart(barcode, change) {
-        if (navigator.vibrate) navigator.vibrate(25);
-
-        const product = productsData.find((p) => p.barcode === barcode);
-        if (!product) return;
-
-        if (!cart[barcode])
-          cart[barcode] = { name: product.name, price: product.price, qty: 0 };
-
-        cart[barcode].qty += change;
-        if (cart[barcode].qty <= 0) delete cart[barcode];
-
-        // Обновляем все элементы на странице с этим штрихкодом
-        document.querySelectorAll(`#qty-${barcode}`).forEach((el) => {
-          el.innerText = cart[barcode] ? cart[barcode].qty : 0;
-        });
-
-        updateCartUI();
-      }
-
-      function updateCartUI() {
-        const cartBar = document.getElementById("cart-bar");
-        const totalEl = document.getElementById("cart-total");
-
-        let total = 0;
-        let count = 0;
-
-        for (let id in cart) {
-          total += cart[id].price * cart[id].qty;
-          count += cart[id].qty;
-        }
-
-        totalEl.innerText = `${total} ₸`;
-
-        if (count > 0) {
-          cartBar.classList.remove("translate-y-full");
-        } else {
-          cartBar.classList.add("translate-y-full");
-        }
-      }
-
-      function checkout() {
-        const phone = "77779409625";
-        let text = "Здравствуйте! Мой заказ:\n\n";
-        let total = 0;
-
-        for (let id in cart) {
-          const item = cart[id];
-          text += `— ${item.name} (${item.qty} шт.) = ${item.price * item.qty} ₸\n`;
-          total += item.price * item.qty;
-        }
-
-        text += `\nИтого к оплате: ${total} ₸`;
-
-        window.open(
-          `https://wa.me/${phone}?text=${encodeURIComponent(text)}`,
-          "_blank",
-        );
-      }
-
-      updateStoreStatus();
-      loadProducts();
-    </script>
-  </body>
-  <!-- Подвал сайта -->
-  <footer class="bg-gray-900 text-gray-300 mt-12 border-t border-gray-800">
-    <div class="max-w-4xl mx-auto p-6 sm:p-8">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
-        <!-- О магазине -->
-        <div>
-          <h3 class="font-bold text-white text-base mb-2">
-            Продукты у Валентины
-          </h3>
-          <p class="text-xs text-gray-400 leading-relaxed mb-3">
-            Свежие продукты питания, выпечка, напитки и бытовая химия в с.
-            Иртышск.
-          </p>
-          <p
-            class="text-xs text-green-400 font-semibold flex items-center gap-1"
-          >
-            📍 с. Иртышск, Павлодарская область
-          </p>
-        </div>
-
-        <!-- Контакты и Режим -->
-        <div>
-          <h4
-            class="font-bold text-white mb-2 text-xs uppercase tracking-wider text-gray-400"
-          >
-            Контакты и график
-          </h4>
-          <ul class="space-y-1.5 text-xs">
-            <li class="flex items-center gap-2">
-              <span>🕒</span>
-              <span><strong>8:00 — 21:00</strong> (Без выходных)</span>
-            </li>
-            <li class="flex items-center gap-2">
-              <span>💬</span>
-              <a
-                href="https://wa.me/77779409625"
-                target="_blank"
-                class="text-green-400 hover:underline font-semibold"
-              >
-                +7 (777) 940-96-25
-              </a>
-            </li>
-            <li class="flex items-center gap-2">
-              <span>💳</span>
-              <span>Kaspi QR / Наличный расчет</span>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Реквизиты ИП -->
-        <div>
-          <h4
-            class="font-bold text-white mb-2 text-xs uppercase tracking-wider text-gray-400"
-          >
-            Реквизиты
-          </h4>
-          <div class="text-xs text-gray-400 space-y-1 font-mono">
-            <p>ИП «Валентина»</p>
-            <p>ИИН: [Впиши ИИН]</p>
-            <p class="text-[11px] font-sans text-gray-500 mt-2">
-              Оформление заказа происходит через WhatsApp. Самовывоз из магазина
-              или доставка по согласованию.
+    <!-- Подвал -->
+    <footer class="bg-gray-900 text-gray-300 mt-12 border-t border-gray-800">
+      <div class="max-w-4xl mx-auto p-6 sm:p-8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
+          <div>
+            <h3 class="font-bold text-white text-base mb-2">
+              Продукты у Валентины
+            </h3>
+            <p class="text-xs text-gray-400 leading-relaxed mb-3">
+              Свежие продукты питания, выпечка, напитки и бытовая химия в с.
+              Иртышск.
+            </p>
+            <p
+              class="text-xs text-green-400 font-semibold flex items-center gap-1"
+            >
+              📍 с. Иртышск, Павлодарская область
             </p>
           </div>
+          <div>
+            <h4
+              class="font-bold text-white mb-2 text-xs uppercase tracking-wider text-gray-400"
+            >
+              Контакты и график
+            </h4>
+            <ul class="space-y-1.5 text-xs">
+              <li>🕒 <strong>9:00 — 21:00</strong> (Без выходных)</li>
+              <li>
+                💬
+                <a
+                  href="https://wa.me/77779409625"
+                  target="_blank"
+                  class="text-green-400 hover:underline font-semibold"
+                  >+7 (777) 461-40-03</a
+                >
+              </li>
+              <li>💳 Kaspi/Halyk перевод / Наличный расчет</li>
+            </ul>
+          </div>
+          <div>
+            <h4
+              class="font-bold text-white mb-2 text-xs uppercase tracking-wider text-gray-400"
+            >
+              Реквизиты
+            </h4>
+            <div class="text-xs text-gray-400 space-y-1 font-mono">
+              <p>ИП «Валентина»</p>
+              <p class="text-[11px] font-sans text-gray-500 mt-2">
+                Оформление заказа происходит через WhatsApp. Самовывоз из
+                магазина или доставка по согласованию.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div
+          class="border-t border-gray-800 mt-6 pt-4 flex justify-between items-center text-xs text-gray-500"
+        >
+          <p>© 2026 Продукты у Валентины.</p>
+          <p class="text-[11px]">Разработано для с. Иртышск</p>
         </div>
       </div>
+    </footer>
 
-      <!-- Нижняя плашка -->
-      <div
-        class="border-t border-gray-800 mt-6 pt-4 flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-2"
-      >
-        <p>© 2026 Продукты у Валентины.</p>
-        <p class="text-[11px]">Разработано для с. Иртышск</p>
-      </div>
-    </div>
-  </footer>
+    <!-- Подключаем выделенный JS -->
+    <script src="static/js/catalog.js"></script>
+  </body>
 </html>
