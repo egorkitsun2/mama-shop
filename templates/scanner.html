@@ -422,29 +422,29 @@
             .map((file, idx) => {
               const url = URL.createObjectURL(file);
               return `
-                <div class="relative w-12 h-12 rounded border border-gray-300 overflow-hidden flex-shrink-0 bg-gray-100">
-                  <img src="${url}" class="w-full h-full object-cover">
-                  <button 
-                    type="button" 
-                    onclick="removePhoto(${idx})" 
-                    class="absolute top-0 right-0 bg-red-600 text-white text-[10px] w-4 h-4 flex items-center justify-center font-bold rounded-bl active:scale-90 transition-transform"
-                  >✕</button>
-                </div>
-              `;
+                      <div class="relative w-12 h-12 rounded border border-gray-300 overflow-hidden flex-shrink-0 bg-gray-100">
+                        <img src="${url}" class="w-full h-full object-cover">
+                        <button
+                          type="button"
+                          onclick="removePhoto(${idx})"
+                          class="absolute top-0 right-0 bg-red-600 text-white text-[10px] w-4 h-4 flex items-center justify-center font-bold rounded-bl active:scale-90 transition-transform"
+                        >✕</button>
+                      </div>
+                    `;
             })
             .join("");
 
           previewEl.innerHTML = `
-            <div class="bg-gray-50 p-2 rounded border border-gray-200">
-              <div class="flex justify-between items-center mb-1.5">
-                <span class="text-xs font-bold text-gray-700">Снято кадров: ${selectedFiles.length}</span>
-                <button type="button" onclick="resetPhotos()" class="text-[10px] font-bold text-red-500 hover:underline">Очистить всё</button>
-              </div>
-              <div class="flex gap-1.5 overflow-x-auto pb-1">
-                ${thumbsHtml}
-              </div>
-            </div>
-          `;
+                  <div class="bg-gray-50 p-2 rounded border border-gray-200">
+                    <div class="flex justify-between items-center mb-1.5">
+                      <span class="text-xs font-bold text-gray-700">Снято кадров: ${selectedFiles.length}</span>
+                      <button type="button" onclick="resetPhotos()" class="text-[10px] font-bold text-red-500 hover:underline">Очистить всё</button>
+                    </div>
+                    <div class="flex gap-1.5 overflow-x-auto pb-1">
+                      ${thumbsHtml}
+                    </div>
+                  </div>
+                `;
         } else {
           previewEl.innerHTML = "";
         }
@@ -488,7 +488,13 @@
       }
 
       function onScanSuccess(decodedText) {
-        html5QrcodeScanner.clear();
+        // Безопасный останов сканера без вылета ошибок
+        if (html5QrcodeScanner) {
+          try {
+            html5QrcodeScanner.clear().catch(() => {});
+          } catch (e) {}
+        }
+
         currentBarcode = decodedText;
 
         const qtyInput = document.getElementById("scan-qty");
@@ -546,7 +552,6 @@
             document.getElementById("rescan").classList.remove("hidden");
           });
       }
-
       function openModalForNew(barcode) {
         document.getElementById("modalTitle").innerText = "Новый товар";
         document.getElementById("newBarcodeLabel").innerText = barcode
@@ -626,14 +631,14 @@
             listEl.innerHTML = data.cart
               .map(
                 (item) => `
-              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200 text-sm">
-                <div class="flex-grow pr-2">
-                  <p class="font-semibold text-gray-800 leading-tight">${item.name}</p>
-                  <p class="text-xs text-gray-500">${item.price} ₸ × ${item.qty} = <span class="font-bold text-gray-700">${item.price * item.qty} ₸</span></p>
-                </div>
-                <button onclick="removeFromCart('${item.barcode}')" class="bg-red-100 hover:bg-red-200 text-red-600 font-bold px-3 py-1.5 rounded transition-colors">-1</button>
-              </div>
-            `,
+                    <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200 text-sm">
+                      <div class="flex-grow pr-2">
+                        <p class="font-semibold text-gray-800 leading-tight">${item.name}</p>
+                        <p class="text-xs text-gray-500">${item.price} ₸ × ${item.qty} = <span class="font-bold text-gray-700">${item.price * item.qty} ₸</span></p>
+                      </div>
+                      <button onclick="removeFromCart('${item.barcode}')" class="bg-red-100 hover:bg-red-200 text-red-600 font-bold px-3 py-1.5 rounded transition-colors">-1</button>
+                    </div>
+                  `,
               )
               .join("");
           });
@@ -673,17 +678,18 @@
         const subcategory =
           document.getElementById("newSubcategory").value || "";
         const oldPrice = document.getElementById("newOldPrice").value;
-        formData.append("old_price", oldPrice);
 
         if (!name || !price) {
           alert("Заполни название и цену!");
           return;
         }
 
+        // Создаем formData СНАЧАЛА, потом набиваем полями
         const formData = new FormData();
         formData.append("barcode", currentBarcode);
         formData.append("name", name);
         formData.append("price", price);
+        formData.append("old_price", oldPrice);
         formData.append("volume_weight", volumeWeight);
         formData.append("category", category);
         formData.append("subcategory", subcategory);
