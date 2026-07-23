@@ -589,6 +589,7 @@
               document.getElementById("result").innerHTML =
                 `<span class="text-amber-600 font-bold">⚠️ Уже существует: ${data.name}</span>`;
               document.getElementById("rescan").classList.remove("hidden");
+              updateScannerCartUI();
             } else {
               lastScannedProduct = null;
               openModalForNew(decodedText);
