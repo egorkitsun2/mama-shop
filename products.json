@@ -8,19 +8,27 @@
         "subcategory": ""
     },
     {
-        "barcode": "82856938325",
-        "name": "Резинки",
-        "price": 20.0,
-        "image": "82856938325_photo.jpg",
-        "category": "Хоз. товары",
-        "subcategory": ""
-    },
-    {
         "barcode": "6970259791018",
         "name": "Ушные палочки",
         "price": 500.0,
         "image": "6970259791018_photo.jpg",
         "category": "Бытовая химия и гигиена",
         "subcategory": "Мыло и уход за собой"
+    },
+    {
+        "barcode": "23853520754",
+        "name": "Коробка",
+        "price": 500.0,
+        "image": "23853520754.png",
+        "category": "Бытовая химия и гигиена",
+        "subcategory": "Хозяйственные мелочи"
+    },
+    {
+        "barcode": "82856938325",
+        "name": "Резинки",
+        "price": 20.0,
+        "image": "82856938325.png",
+        "category": "Хоз. товары",
+        "subcategory": ""
     }
 ]
