@@ -17,6 +17,14 @@ DB_PATH = "shop.db"
 UPLOAD_FOLDER = "static/img"
 BACKUP_FOLDER = "backups"
 
+
+@app.after_request
+def add_cache_headers(response):
+    if request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000"
+    return response
+
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(BACKUP_FOLDER, exist_ok=True)
 
@@ -308,15 +316,20 @@ def add():
         else:
             uploaded_files = []
 
+    # ТУТ ПЕРЕВОД НА WebP
     if uploaded_files:
         saved_filenames = []
         for idx, file_obj in enumerate(uploaded_files):
             output_image = process_image(file_obj.stream)
-            filename = f"{barcode}_{idx + 1}.png"
+            filename = f"{barcode}_{idx + 1}.webp"
             save_path = os.path.join(UPLOAD_FOLDER, filename)
 
-            output_image.thumbnail((800, 800))
-            output_image.save(save_path, format="PNG", optimize=True)
+            # Ограничиваем размер 600x600 px и сохраняем с кастомным сжатием
+            output_image.thumbnail((600, 600))
+            if output_image.mode not in ("RGB", "RGBA"):
+                output_image = output_image.convert("RGBA")
+
+            output_image.save(save_path, format="WEBP", quality=80, optimize=True)
             saved_filenames.append(filename)
 
         main_filename = saved_filenames[0]
@@ -328,7 +341,7 @@ def add():
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
-            INSERT OR REPLACE INTO products (barcode, name, price, image, category, subcategory, volume_weight, images,old_price) 
+            INSERT OR REPLACE INTO products (barcode, name, price, image, category, subcategory, volume_weight, images, old_price) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
