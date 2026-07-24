@@ -212,31 +212,27 @@
           class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         />
 
+        <!-- Выпадающий список категорий (Нативный select для iOS) -->
         <label
           class="block mb-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase"
           >Категория:</label
         >
-        <input
-          list="categories-list"
+        <select
           id="newCategory"
-          placeholder="Поиск категории..."
           onchange="updateSubcategories()"
-          class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-        />
-        <datalist id="categories-list"></datalist>
+          class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+        ></select>
 
+        <!-- Выпадающий список подкатегорий -->
         <div id="subcatContainer" class="hidden">
           <label
             class="block mb-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase"
             >Подкатегория:</label
           >
-          <input
-            list="subcategories-list"
+          <select
             id="newSubcategory"
-            placeholder="Поиск подкатегории..."
-            class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-          />
-          <datalist id="subcategories-list"></datalist>
+            class="w-full border border-gray-300 dark:border-gray-600 p-2 mb-3 rounded text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+          ></select>
         </div>
 
         <label
@@ -297,6 +293,8 @@
       let lastScannedProduct = null;
       let selectedFiles = [];
       let currentMode = "sell";
+      let isProcessingScan = false;
+      let isScannerActive = false;
 
       const modeConfigs = {
         sell: {
@@ -375,20 +373,59 @@
           "Стиральные порошки и моющие",
           "Хозяйственные мелочи",
         ],
+        Прочее: ["Разное"],
+      };
+
+      const scannerConfig = {
+        fps: 10,
+        qrbox: { width: 250, height: 100 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ],
       };
 
       let html5QrcodeScanner = new Html5QrcodeScanner(
         "reader",
-        { fps: 10, qrbox: { width: 250, height: 100 } },
+        scannerConfig,
         false,
       );
 
       function startScanner() {
+        if (isScannerActive) return;
         document.getElementById("rescan").classList.add("hidden");
         document.getElementById("result").innerText =
           "Наведи камеру на штрихкод";
-        html5QrcodeScanner.render(onScanSuccess);
+        try {
+          html5QrcodeScanner.render(onScanSuccess);
+          isScannerActive = true;
+        } catch (e) {}
       }
+
+      function stopScanner() {
+        if (!isScannerActive) return;
+        try {
+          html5QrcodeScanner.clear().catch(() => {});
+          isScannerActive = false;
+        } catch (e) {}
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopScanner();
+        } else if (
+          !document
+            .getElementById("newProductModal")
+            .classList.contains("hidden")
+        ) {
+          // Если открыта модалка — не запускаем
+        } else {
+          startScanner();
+        }
+      });
 
       function setMode(mode) {
         if (!modeConfigs[mode]) return;
@@ -418,24 +455,29 @@
       }
 
       function initCategories() {
-        const catList = document.getElementById("categories-list");
-        catList.innerHTML = Object.keys(CATALOG_STRUCTURE)
-          .map((cat) => `<option value="${cat}">`)
-          .join("");
+        const catSelect = document.getElementById("newCategory");
+        catSelect.innerHTML =
+          '<option value="Прочее">Прочее</option>' +
+          Object.keys(CATALOG_STRUCTURE)
+            .filter((c) => c !== "Прочее")
+            .map((cat) => `<option value="${cat}">${cat}</option>`)
+            .join("");
+        updateSubcategories();
       }
 
       function updateSubcategories() {
         const selectedCat = document.getElementById("newCategory").value;
         const subContainer = document.getElementById("subcatContainer");
-        const subList = document.getElementById("subcategories-list");
+        const subSelect = document.getElementById("newSubcategory");
 
         const subcats = CATALOG_STRUCTURE[selectedCat] || [];
         if (subcats.length > 0) {
-          subList.innerHTML = subcats
-            .map((sub) => `<option value="${sub}">`)
+          subSelect.innerHTML = subcats
+            .map((sub) => `<option value="${sub}">${sub}</option>`)
             .join("");
           subContainer.classList.remove("hidden");
         } else {
+          subSelect.innerHTML = "";
           subContainer.classList.add("hidden");
         }
       }
@@ -502,7 +544,15 @@
       }
 
       function onScanSuccess(decodedText) {
-        currentBarcode = decodedText;
+        if (isProcessingScan) return;
+
+        const cleanCode = decodedText.trim();
+        if (cleanCode.length < 4 || /[^a-zA-Z0-9-]/.test(cleanCode)) return;
+
+        isProcessingScan = true;
+        if (navigator.vibrate) navigator.vibrate(40);
+
+        currentBarcode = cleanCode;
         const qtyInput = document.getElementById("scan-qty");
         const qtyVal = parseInt(qtyInput ? qtyInput.value : "1") || 1;
 
@@ -510,7 +560,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            barcode: decodedText,
+            barcode: cleanCode,
             mode: currentMode,
             qty: qtyVal,
           }),
@@ -538,7 +588,7 @@
                 document.getElementById("rescan").classList.remove("hidden");
               } else {
                 lastScannedProduct = null;
-                openModalForNew(decodedText);
+                openModalForNew(cleanCode);
               }
             } else if (currentMode === "edit") {
               if (data.status === "found") {
@@ -556,10 +606,16 @@
             document.getElementById("result").innerHTML =
               `<span class="text-red-500">Ошибка сети или сервера</span>`;
             document.getElementById("rescan").classList.remove("hidden");
+          })
+          .finally(() => {
+            setTimeout(() => {
+              isProcessingScan = false;
+            }, 1500);
           });
       }
 
       function openModalForNew(barcode) {
+        stopScanner();
         document.getElementById("modalTitle").innerText = "Новый товар";
         document.getElementById("newBarcodeLabel").innerText = barcode
           ? "Штрихкод: " + barcode
@@ -567,8 +623,8 @@
         document.getElementById("newName").value = "";
         document.getElementById("newPrice").value = "";
         document.getElementById("newVolumeWeight").value = "";
-        document.getElementById("newCategory").value = "";
-        document.getElementById("newSubcategory").value = "";
+        document.getElementById("newCategory").value = "Прочее";
+        updateSubcategories();
         document.getElementById("newOldPrice").value = "";
 
         selectedFiles = [];
@@ -579,6 +635,7 @@
 
       function openEditModalForCurrent() {
         if (!lastScannedProduct) return;
+        stopScanner();
         document.getElementById("modalTitle").innerText =
           "Редактирование товара";
         document.getElementById("newBarcodeLabel").innerText =
@@ -588,7 +645,7 @@
         document.getElementById("newVolumeWeight").value =
           lastScannedProduct.volume_weight || "";
         document.getElementById("newCategory").value =
-          lastScannedProduct.category || "";
+          lastScannedProduct.category || "Прочее";
         updateSubcategories();
         document.getElementById("newSubcategory").value =
           lastScannedProduct.subcategory || "";
