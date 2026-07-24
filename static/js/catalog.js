@@ -46,7 +46,7 @@ const CATALOG_STRUCTURE = {
     "Стиральные порошки и моющие",
     "Хозяйственные мелочи",
   ],
-  Прочее: ["Разное"], // <-- Добавлена новая категория
+  Прочее: ["Разное"],
 };
 
 // Переключение режимов темы: system -> light -> dark
@@ -73,7 +73,6 @@ function cycleTheme() {
   applyTheme(next);
 }
 
-// Отслеживание смены системной темы на лету
 window
   .matchMedia("(prefers-color-scheme: dark)")
   .addEventListener("change", () => {
@@ -82,7 +81,6 @@ window
     }
   });
 
-// Скелетон с поддержкой Dark Mode
 function showSkeleton() {
   const container = document.getElementById("catalog-container");
   if (!container) return;
@@ -105,7 +103,6 @@ function showSkeleton() {
   `;
 }
 
-// Заглушка с котом
 function getEmptyStateHTML(
   title = "Раздел скоро заполнится",
   desc = "Завозим новые товары и наводим порядок на полках.",
@@ -573,6 +570,69 @@ function addToCart(barcode, change) {
   updateCartUI();
 }
 
+function openCartDrawer() {
+  const drawer = document.getElementById("cartDrawer");
+  if (!drawer) return;
+  renderCartDrawer();
+  drawer.classList.remove("hidden");
+}
+
+function closeCartDrawer() {
+  const drawer = document.getElementById("cartDrawer");
+  if (drawer) drawer.classList.add("hidden");
+}
+
+function renderCartDrawer() {
+  const container = document.getElementById("cart-drawer-items");
+  const totalEl = document.getElementById("cart-drawer-total");
+  if (!container) return;
+
+  const barcodes = Object.keys(cart);
+  if (barcodes.length === 0) {
+    container.innerHTML = `<p class="text-center text-gray-400 dark:text-gray-500 text-sm py-8">В корзине пока ничего нет</p>`;
+    if (totalEl) totalEl.innerText = "0 ₸";
+    closeCartDrawer();
+    return;
+  }
+
+  let total = 0;
+  container.innerHTML = barcodes
+    .map((b) => {
+      const item = cart[b];
+      const sum = item.price * item.qty;
+      total += sum;
+      const product = productsData.find((p) => p.barcode === b);
+      const imgPath =
+        product && (product.image || (product.images && product.images[0]))
+          ? `static/img/${product.image || product.images[0]}`
+          : null;
+
+      return `
+        <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-900/80 p-2.5 rounded-xl border border-gray-200/80 dark:border-gray-700">
+          <div class="flex items-center gap-2.5 flex-grow min-w-0 pr-2">
+            ${
+              imgPath
+                ? `<img src="${imgPath}" class="w-10 h-10 object-cover rounded-lg shrink-0 bg-white dark:bg-gray-800">`
+                : `<div class="w-10 h-10 rounded-lg shrink-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400">🖼</div>`
+            }
+            <div class="min-w-0">
+              <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-200 truncate leading-tight">${item.name}</h4>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">${item.price} ₸ × ${item.qty} = <span class="font-bold text-green-600 dark:text-green-400">${sum} ₸</span></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
+            <button onclick="addToCart('${b}', -1)" class="w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-gray-700 rounded active:scale-90 transition-transform">-</button>
+            <span class="text-xs font-bold text-gray-800 dark:text-gray-200 w-5 text-center">${item.qty}</span>
+            <button onclick="addToCart('${b}', 1)" class="w-6 h-6 flex items-center justify-center text-green-600 dark:text-green-400 font-bold hover:bg-green-50 dark:hover:bg-green-950 rounded active:scale-90 transition-transform">+</button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  if (totalEl) totalEl.innerText = `${total} ₸`;
+}
+
 function updateCartUI() {
   const cartBar = document.getElementById("cart-bar");
   const totalEl = document.getElementById("cart-total");
@@ -585,12 +645,18 @@ function updateCartUI() {
     count += cart[id].qty;
   }
 
-  totalEl.innerText = `${total} ₸`;
+  if (totalEl) totalEl.innerText = `${total} ₸`;
 
   if (count > 0) {
-    cartBar.classList.remove("translate-y-full");
+    if (cartBar) cartBar.classList.remove("translate-y-full");
   } else {
-    cartBar.classList.add("translate-y-full");
+    if (cartBar) cartBar.classList.add("translate-y-full");
+    closeCartDrawer();
+  }
+
+  const drawer = document.getElementById("cartDrawer");
+  if (drawer && !drawer.classList.contains("hidden")) {
+    renderCartDrawer();
   }
 }
 
