@@ -594,7 +594,7 @@ function updateCartUI() {
 }
 
 function checkout() {
-  const phone = "77774614003";
+  const phone = "77774180278";
   let text = "Здравствуйте! Мой заказ:\n\n";
   let total = 0;
 
